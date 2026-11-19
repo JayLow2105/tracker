@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<title>Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%279%27 fill=%27%23e0262e%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%277%27 fill=%27white%27 stroke=%27%231c1b19%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f5f3ee; --card: #ffffff; --ink: #1c1b19; --muted: #6d6a63; --line: #e4e0d6;
+  --red: #e0262e; --red-soft: #fde8e9; --green: #1f8a4c; --green-soft: #e2f4e9;
+  --amber: #a86400; --amber-soft: #fdf0d8; --blue: #2459c9; --blue-soft: #e5edfc; --grey-soft: #eeebe4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131312; --card: #1e1d1b; --ink: #f1efe9; --muted: #a09c93; --line: #33312d;
+    --red: #ff5b62; --red-soft: #3d1a1c; --green: #55cf88; --green-soft: #17301f;
+    --amber: #f0b354; --amber-soft: #382a10; --blue: #86a9ff; --blue-soft: #1a2542; --grey-soft: #2a2825;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Avenir Next", "Segoe UI", sans-serif; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 720px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top)) 16px calc(50px + env(safe-area-inset-bottom)); }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.logo { width: 38px; height: 38px; border-radius: 11px; background: var(--red); display: grid; place-items: center; flex: none; }
+.logo i { width: 16px; height: 16px; border-radius: 50%; background: #fff; display: block; box-shadow: 0 0 0 3px #1c1b19 inset; }
+h1 { font-size: 19px; margin: 0; }
+.sub { color: var(--muted); font-size: 13px; }
+.sub.bad { color: var(--red); font-weight: 600; }
+header button { margin-left: auto; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 24px 2px 8px; }
+.now-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pct { font-size: 44px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.stage { font-size: 17px; font-weight: 700; }
+.topic { margin-top: 8px; }
+.bar { height: 12px; background: var(--grey-soft); border-radius: 99px; overflow: hidden; margin: 14px 0 12px; }
+.bar > div { height: 100%; background: var(--red); border-radius: 99px; transition: width 1s linear; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.step { font-size: 12px; padding: 4px 8px; border-radius: 8px; background: var(--grey-soft); color: var(--muted); }
+.step.done { background: var(--green-soft); color: var(--green); }
+.step.cur { background: var(--red-soft); color: var(--red); font-weight: 700; }
+.meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.err { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--red-soft); color: var(--red); font-size: 13px; word-break: break-word; }
+.slots { display: grid; gap: 10px; }
+.slot { padding: 12px 14px; }
+.slot .time { font-size: 21px; font-weight: 800; }
+.slot .t { margin-top: 4px; font-size: 14px; }
+.slot .t.dim { color: var(--muted); }
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 6px; background: var(--grey-soft); color: var(--muted); }
+.badge.posted { background: var(--green-soft); color: var(--green); }
+.badge.failed, .badge.missed { background: var(--red-soft); color: var(--red); }
+.badge.running, .badge.disaster { background: var(--amber-soft); color: var(--amber); }
+.badge.made, .badge.scheduled, .badge.funny { background: var(--blue-soft); color: var(--blue); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { padding: 12px 14px; }
+.stat b { font-size: 24px; font-weight: 800; display: block; }
+.stat span { color: var(--muted); font-size: 13px; }
+button, .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 13px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-block; min-height: 40px; }
+button.primary { background: var(--red); border-color: var(--red); color: #fff; }
+button.on { background: var(--ink); color: var(--card); border-color: var(--ink); }
+button:disabled { opacity: .5; }
+.filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+.filters button { white-space: nowrap; flex: none; }
+.video { display: grid; grid-template-columns: 84px 1fr; gap: 12px; padding: 12px; margin-bottom: 10px; }
+.thumb { width: 84px; height: 149px; border-radius: 10px; background: var(--grey-soft) center/cover no-repeat; position: relative; border: 0; padding: 0; min-height: 0; }
+.thumb.none { display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; padding: 4px; }
+.thumb .play { position: absolute; inset: 0; display: grid; place-items: center; }
+.thumb .play i { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); display: grid; place-items: center; }
+.thumb .play i::after { content: ""; border-left: 12px solid #fff; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 4px; }
+.video h3 { margin: 0 0 4px; font-size: 15px; line-height: 1.3; }
+.when { color: var(--muted); font-size: 13px; }
+.actions { margin-top: 10px; }
+.also { margin-top: 8px; font-size: 13px; color: var(--muted); }
+details { margin-top: 8px; font-size: 13px; }
+details summary { color: var(--muted); padding: 4px 0; }
+details p { white-space: pre-wrap; margin: 6px 0 0; }
+.small-row { padding: 10px 14px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.log { font: 11px/1.5 Menlo, monospace; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.log .WARNING { color: var(--amber); } .log .ERROR { color: var(--red); } .log time { color: var(--muted); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+dt { color: var(--muted); } dd { margin: 0; word-break: break-word; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+input { width: 100%; font: inherit; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+#toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--card);
+  padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw; text-align: center; }
+#toast.show { opacity: 1; }
+#modal { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; place-items: center; z-index: 10; padding: 12px; }
+#modal.show { display: grid; }
+#modal video { max-height: 86vh; max-width: 100%; border-radius: 12px; background: #000; }
+#modal button { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><i></i></div>
+    <div><h1>Tracker</h1><div class="sub" id="seen">Not connected</div></div>
+    <button id="settingsBtn" hidden>Settings</button>
+  </header>
+
+  <div class="card" id="setupCard" hidden>
+    <strong>Connect this phone</strong>
+    <div class="sub" style="margin-top:4px">Both values stay on this phone only.</div>
+    <label for="repo">Private repository (owner/name)</label>
+    <input id="repo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="owner/repository">
+    <label for="key">Access key (read-only token)</label>
+    <input id="key" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_...">
+    <div class="row" style="margin-top:14px"><button class="primary" id="connect">Connect</button><button id="forget" hidden>Forget this phone</button></div>
+    <div class="err" id="setupErr" hidden></div>
+  </div>
+
+  <div id="app" hidden>
+    <div class="card" id="now"></div>
+    <h2>Today</h2><div class="slots" id="slots"></div>
+    <h2>Totals</h2><div class="stats" id="stats"></div>
+    <h2>Videos</h2>
+    <div class="filters">
+      <button data-filter="all" class="on">All</button><button data-filter="posted">Posted</button>
+      <button data-filter="scheduled">Scheduled</button><button data-filter="todo">Not on YouTube yet</button><button data-filter="failed">Problems</button>
+    </div>
+    <div id="videos"></div>
+    <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
+    <h2>Activity log</h2><div class="card"><div class="log" id="log"></div></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="modal"><button id="closeModal">Close</button><video controls playsinline></video></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const STEPS = [["Topic", 4], ["Story", 8], ["Safety review", 14], ["Voiceover", 20], ["Animation", 28],
+               ["Checks and fixes", 60], ["Render", 85], ["Wait for post time", 90], ["Post", 93], ["Posted", 100]];
+const store = { get: (k) => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+                set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} } };
+let repo = store.get("tracker.repo"), key = store.get("tracker.key");
+let state = null, filter = "all", videosKey = "", texts = {}, blobs = {}, timer = null;
+
+// A link can carry the values once:  .../#repo=owner/name&key=github_pat_...  (then they are removed from the address)
+(() => {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("repo")) { repo = h.get("repo"); store.set("tracker.repo", repo); }
+  if (h.get("key")) { key = h.get("key"); store.set("tracker.key", key); }
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+})();
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 2800); }
+async function gh(path) {
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error("bad-repo");
+  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=main`, {
+    headers: { Authorization: `Bearer ${key}`, Accept: "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28" }, cache: "no-store" });
+  if (!r.ok) throw new Error(String(r.status));
+  return r;
+}
+async function fileUrl(path, type) {
+  if (!blobs[path]) blobs[path] = gh(path).then((r) => r.arrayBuffer()).then((b) => new Blob([b], { type }));
+  try { return await blobs[path]; } catch (e) { delete blobs[path]; throw e; }
+}
+const hm = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function dayLabel(iso) {
+  const d = new Date(iso), same = (a, b) => a.toDateString() === b.toDateString();
+  const day = same(d, new Date()) ? "Today" : same(d, new Date(Date.now() - 864e5)) ? "Yesterday" : same(d, new Date(Date.now() + 864e5)) ? "Tomorrow"
+    : d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  return `${day}, ${hm(iso)}`;
+}
+function ago(iso) { const s = Math.max(0, (Date.now() - new Date(iso)) / 1000); return s < 90 ? `${Math.round(s)} s` : s < 5400 ? `${Math.round(s / 60)} min` : s < 172800 ? `${(s / 3600).toFixed(1)} h` : `${Math.round(s / 86400)} days`; }
+function until(iso) { const s = (new Date(iso) - Date.now()) / 1000; if (s <= 0) return "now"; return s < 5400 ? `in ${Math.max(1, Math.round(s / 60))} min` : s < 86400 ? `in ${(s / 3600).toFixed(1)} h` : `in ${Math.round(s / 86400)} days`; }
+const kindBadge = (k) => k ? `<span class="badge ${esc(k)}">${esc(k)}</span>` : "";
+const stale = () => state && (Date.now() - new Date(state.published_at)) / 60000;
+
+function renderNow() {
+  const p = state.progress || {}, el = $("#now"), old = stale() > 25;
+  if (p.running && !old) {
+    let shown = p.percent || 0;
+    if (p.expect && p.until > shown && p.updated) shown += (p.until - shown) * Math.min(1, (Date.now() - new Date(p.updated)) / 1000 / p.expect) * 0.97;
+    const pct = Math.min(99, Math.round(shown));
+    const steps = STEPS.map(([name, at], i) => { const next = (STEPS[i + 1] || [0, 101])[1]; return `<span class="step ${p.percent >= next ? "done" : p.percent >= at ? "cur" : ""}">${name}</span>`; }).join("");
+    el.innerHTML = `<div class="now-top"><span class="pct">${pct}%</span><span class="stage">${esc(p.stage)}</span></div>
+      <div class="row" style="margin-top:6px">${kindBadge(p.kind)}${p.batch ? `<span class="badge running">${esc(p.batch)}</span>` : ""}</div>
+      <div class="topic">${p.topic ? esc(p.topic) : "<span class='sub'>Choosing a topic…</span>"}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div><div class="steps">${steps}</div>
+      <div class="meta">${p.started ? `Started ${hm(p.started)} (${ago(p.started)} ago)` : ""}${p.post_time ? ` · posts ${dayLabel(p.post_time)} (${until(p.post_time)})` : ""}</div>`;
+    return;
+  }
+  const n = state.next, upcoming = n && new Date(n.start) > Date.now();
+  el.innerHTML = `<div class="now-top"><span class="stage">${old ? "The Mac has not reported in" : "Nothing is being made right now"}</span></div>
+    <div class="topic">${old ? `Last update was ${ago(state.published_at)} ago. It may be off, asleep or offline. Posts already scheduled in TikTok still go out.`
+      : upcoming ? `Next video: ${kindBadge(n.kind)} starts ${dayLabel(n.start)} (${until(n.start)}), posts at ${hm(n.post)}.` : "The next run should start any moment."}</div>
+    ${p.stage && !old ? `<div class="meta">Last run: ${esc(p.stage)}${p.topic ? ` · ${esc(p.topic)}` : ""}</div>` : ""}${p.error ? `<div class="err">${esc(p.error)}</div>` : ""}`;
+}
+function renderSlots() {
+  const label = { posted: "Posted", scheduled: "Scheduled in TikTok", failed: "Post failed", made: "Made, not posted", running: "In progress", upcoming: "Upcoming", missed: "Missed" };
+  const sameDay = new Date(state.now).toDateString() === new Date().toDateString();
+  $("#slots").innerHTML = !sameDay ? `<div class="card slot sub">No report from the Mac yet today.</div>` : state.slots.map((x) => `<div class="card slot">
+      <div class="row"><span class="time">${esc(x.time)}</span>${kindBadge(x.kind)}<span class="badge ${x.status}">${label[x.status] || esc(x.status)}</span></div>
+      <div class="t ${x.topic ? "" : "dim"}">${x.topic ? esc(x.topic) : x.status === "upcoming" ? `Starts building at ${esc(x.start)}` : x.status === "running" ? "Being made now" : "No video for this slot"}</div></div>`).join("");
+}
+function renderStats() {
+  const t = state.stats, items = [[t.posted, "posted in total"], [t.posted_week, "posted, last 7 days"], [t.scheduled, "scheduled, waiting"], [t.failed_week, "failed, last 7 days"]];
+  $("#stats").innerHTML = items.map(([b, l]) => `<div class="card stat"><b>${esc(b)}</b><span>${l}</span></div>`).join("");
+}
+function renderVideos(force) {
+  const list = state.videos.filter((v) => filter === "all" ? true : filter === "posted" ? v.status === "posted" : filter === "scheduled" ? v.status === "scheduled"
+    : filter === "todo" ? v.status !== "skipped" && !v.marks.youtube : v.status === "failed" || v.status === "skipped");
+  const k = filter + JSON.stringify(list);
+  if (k === videosKey && !force) return;
+  videosKey = k; texts = {};
+  const statusLabel = { posted: "Posted to TikTok", scheduled: "Scheduled in TikTok", failed: "TikTok post failed", made: "Made, not posted" };
+  $("#videos").innerHTML = list.map((v, i) => {
+    if (v.status === "skipped") return `<div class="card small-row"><span class="badge">Skipped</span> ${esc(dayLabel(v.created))} · ${esc(v.topic)}<br>${esc(v.detail)}</div>`;
+    texts[i] = { title: v.title, description: v.description, tags: v.tags, caption: v.caption, file: v.file };
+    const dis = v.file ? "" : "disabled", marks = ["youtube", "instagram", "facebook"].filter((p) => v.marks[p]).map((p) => ({ youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" }[p]));
+    const thumb = v.file ? `<button class="thumb" data-play="${i}" data-thumb="${esc(v.file)}" aria-label="Play video"><span class="play"><i></i></span></button>` : `<div class="thumb none">Older than the phone keeps</div>`;
+    const when = v.scheduled_for ? (v.status === "scheduled" ? "Posts " : "Posted ") + dayLabel(v.scheduled_for) : dayLabel(v.created);
+    return `<div class="card video">${thumb}<div>
+      <h3>${esc(v.title)}</h3>
+      <div class="row"><span class="when">${esc(when)}</span>${kindBadge(v.kind)}<span class="badge ${v.status}">${statusLabel[v.status]}</span></div>
+      ${v.detail ? `<div class="err">${esc(v.detail)}</div>` : ""}
+      <div class="row actions"><button class="primary" data-share="${i}" ${dis}>Save to phone</button>
+        <button data-copy="title" data-i="${i}">Copy title</button><button data-copy="description" data-i="${i}">Copy description</button>
+        <button data-copy="tags" data-i="${i}">Copy tags</button><button data-copy="caption" data-i="${i}">Copy caption</button></div>
+      <div class="also">${marks.length ? `Also posted to: ${marks.join(", ")}` : "Not ticked as posted anywhere else yet"}</div>
+      <details><summary>Description and narration</summary><p>${esc(v.description)}</p><p>${esc(v.script)}</p></details></div></div>`;
+  }).join("") || `<div class="card small-row">No videos here yet.</div>`;
+  document.querySelectorAll("[data-thumb]").forEach((el) => thumbs.observe(el));
+}
+const thumbs = new IntersectionObserver((items) => items.forEach(async (it) => {
+  if (!it.isIntersecting) return;
+  thumbs.unobserve(it.target);
+  try { const b = await fileUrl(`thumbs/${it.target.dataset.thumb}.jpg`, "image/jpeg"); it.target.style.backgroundImage = `url(${URL.createObjectURL(b)})`; } catch (e) {}
+}), { rootMargin: "300px" });
+function renderRest() {
+  const mins = stale(), el = $("#seen");
+  el.textContent = `Mac last reported ${ago(state.published_at)} ago`; el.classList.toggle("bad", mins > 25);
+  const u = state.setup, rows = [["Posts every day at", u.times.join(", ")], ["Kinds, in order", u.kinds.join(", ")], ["Starts making each video", `${u.prepare_minutes} minutes before its post time`],
+    ["Video length", `${u.length}, ${u.scenes} scenes`], ["Weekend cover", u.premake], ["Days off", u.skip_dates.length ? u.skip_dates.join(", ") : "none"]];
+  $("#setup").innerHTML = rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("");
+  $("#log").innerHTML = state.log.map((l) => `<div class="${esc(l.level)}"><time>${esc(l.time.slice(5))}</time> ${esc(l.text)}</div>`).join("") || "No activity yet this month.";
+}
+function render() { renderNow(); renderSlots(); renderStats(); renderVideos(); renderRest(); }
+
+function showSetup(msg) {
+  $("#setupCard").hidden = false; $("#repo").value = repo; $("#key").value = key; $("#forget").hidden = !(repo || key);
+  $("#setupErr").hidden = !msg; $("#setupErr").textContent = msg || "";
+}
+async function refresh() {
+  if (!repo || !key) { showSetup(""); $("#app").hidden = true; return; }
+  try {
+    state = await (await gh("status.json")).json();
+    $("#setupCard").hidden = true; $("#app").hidden = false; $("#settingsBtn").hidden = false; render();
+  } catch (e) {
+    const m = e.message;
+    if (m === "401" || m === "403") showSetup("That access key was refused. Check it has read access to the repository and has not expired.");
+    else if (m === "404" || m === "bad-repo") showSetup("Could not find that repository or its status file. Check the name (owner/name) and that the key covers it.");
+    else if (state) { $("#seen").textContent = "No internet. Showing the last update."; $("#seen").classList.add("bad"); }
+    else showSetup("Could not reach GitHub. Check your connection and try again.");
+  }
+}
+function start() { clearInterval(timer); refresh(); timer = setInterval(() => { if (!document.hidden) refresh(); }, 20000); }
+setInterval(() => { if (state && !document.hidden && !$("#app").hidden) { renderNow(); renderRest(); } }, 2000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+
+document.addEventListener("click", async (ev) => {
+  const t = ev.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.filter) { filter = d.filter; document.querySelectorAll("[data-filter]").forEach((b) => b.classList.toggle("on", b === t)); renderVideos(true); }
+  else if (d.play !== undefined) {
+    const m = $("#modal"), v = m.querySelector("video"); toast("Loading video…");
+    try { const b = await fileUrl(`videos/${texts[d.play].file}.mp4`, "video/mp4"); v.src = URL.createObjectURL(b); m.classList.add("show"); v.play().catch(() => {}); }
+    catch (e) { toast("Could not load the video"); }
+  }
+  else if (d.share !== undefined) {
+    const x = texts[d.share]; t.disabled = true; toast("Getting the video…");
+    try {
+      const b = await fileUrl(`videos/${x.file}.mp4`, "video/mp4");
+      const name = (x.title.replace(/[^\w ]+/g, "").trim().slice(0, 60) || "video") + ".mp4";
+      const file = new File([b], name, { type: "video/mp4" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file] });
+      else { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.append(a); a.click(); a.remove(); }
+    } catch (e) { if (e.name !== "AbortError") toast("Could not get the video"); }
+    t.disabled = false;
+  }
+  else if (d.copy) { try { await navigator.clipboard.writeText(texts[d.i][d.copy] || ""); toast(`Copied the ${d.copy}`); } catch (e) { toast("Could not copy"); } }
+  else if (t.id === "connect") { repo = $("#repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, ""); key = $("#key").value.trim(); store.set("tracker.repo", repo); store.set("tracker.key", key); state = null; start(); }
+  else if (t.id === "forget") { repo = key = ""; store.set("tracker.repo", ""); store.set("tracker.key", ""); state = null; blobs = {}; $("#app").hidden = true; $("#settingsBtn").hidden = true; $("#seen").textContent = "Not connected"; showSetup(""); }
+  else if (t.id === "settingsBtn") { $("#setupCard").hidden ? showSetup("") : ($("#setupCard").hidden = true); }
+  else if (t.id === "closeModal") closeModal();
+});
+function closeModal() { const m = $("#modal"), v = m.querySelector("video"); v.pause(); v.removeAttribute("src"); v.load(); m.classList.remove("show"); }
+$("#modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") closeModal(); });
+start();
+</script>
+</body>
+</html>
