@@ -53,6 +53,7 @@ h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: v
 .slot .t.dim { color: var(--muted); }
 .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 6px; background: var(--grey-soft); color: var(--muted); }
+.badge.test { background: var(--grey-soft); color: var(--ink); outline: 1px dashed var(--muted); }
 .badge.posted { background: var(--green-soft); color: var(--green); }
 .badge.failed, .badge.missed { background: var(--red-soft); color: var(--red); }
 .badge.running, .badge.disaster { background: var(--amber-soft); color: var(--amber); }
@@ -119,12 +120,14 @@ input { width: 100%; font: inherit; padding: 11px 12px; border-radius: 10px; bor
 
   <div id="app" hidden>
     <div class="card" id="now"></div>
+    <div class="card" id="test" hidden style="margin-top:12px"></div>
     <h2>Today</h2><div class="slots" id="slots"></div>
     <h2>Totals</h2><div class="stats" id="stats"></div>
     <h2>Videos</h2>
     <div class="filters">
       <button data-filter="all" class="on">All</button><button data-filter="posted">Posted</button>
       <button data-filter="scheduled">Scheduled</button><button data-filter="todo">Not on YouTube yet</button><button data-filter="failed">Problems</button>
+    <button data-filter="test">Tests</button>
     </div>
     <div id="videos"></div>
     <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
@@ -196,6 +199,20 @@ function renderNow() {
       : upcoming ? `Next video: ${kindBadge(n.kind)} starts ${dayLabel(n.start)} (${until(n.start)}), posts at ${hm(n.post)}.` : "The next run should start any moment."}</div>
     ${p.stage && !old ? `<div class="meta">Last run: ${esc(p.stage)}${p.topic ? ` · ${esc(p.topic)}` : ""}</div>` : ""}${p.error ? `<div class="err">${esc(p.error)}</div>` : ""}`;
 }
+
+function renderTest() {
+  const p = state.test || {}, el = $("#test");
+  el.hidden = !p.running; if (!p.running) return;
+  let shown = p.percent || 0;
+  if (p.expect && p.until > shown && p.updated) shown += (p.until - shown) * Math.min(1, (Date.now() - new Date(p.updated)) / 1000 / p.expect) * 0.97;
+  const pct = Math.min(99, Math.round(shown));
+  el.innerHTML = `<div class="row"><span class="badge test">Test video, will not be posted</span>${kindBadge(p.kind)}</div>
+    <div class="now-top" style="margin-top:8px"><span class="pct" style="font-size:30px">${pct}%</span><span class="stage">${esc(p.stage)}</span></div>
+    <div class="topic">${p.topic ? esc(p.topic) : "<span class='sub'>Choosing a topic…</span>"}</div>
+    <div class="bar"><div style="width:${pct}%;background:var(--blue)"></div></div>
+    <div class="meta">${p.started ? `Started ${hm(p.started)} (${ago(p.started)} ago)` : ""}</div>`;
+}
+
 function renderSlots() {
   const label = { posted: "Posted", scheduled: "Scheduled in TikTok", failed: "Post failed", made: "Made, not posted", running: "In progress", upcoming: "Upcoming", missed: "Missed" };
   const sameDay = new Date(state.now).toDateString() === new Date().toDateString();
@@ -209,11 +226,11 @@ function renderStats() {
 }
 function renderVideos(force) {
   const list = state.videos.filter((v) => filter === "all" ? true : filter === "posted" ? v.status === "posted" : filter === "scheduled" ? v.status === "scheduled"
-    : filter === "todo" ? v.status !== "skipped" && !v.marks.youtube : v.status === "failed" || v.status === "skipped");
+    : filter === "todo" ? v.status !== "skipped" && v.status !== "test" && !v.marks.youtube : filter === "test" ? v.status === "test" : v.status === "failed" || v.status === "skipped");
   const k = filter + JSON.stringify(list);
   if (k === videosKey && !force) return;
   videosKey = k; texts = {};
-  const statusLabel = { posted: "Posted to TikTok", scheduled: "Scheduled in TikTok", failed: "TikTok post failed", made: "Made, not posted" };
+  const statusLabel = { posted: "Posted to TikTok", scheduled: "Scheduled in TikTok", failed: "TikTok post failed", made: "Made, not posted", test: "Test, not posted" };
   $("#videos").innerHTML = list.map((v, i) => {
     if (v.status === "skipped") return `<div class="card small-row"><span class="badge">Skipped</span> ${esc(dayLabel(v.created))} · ${esc(v.topic)}<br>${esc(v.detail)}</div>`;
     texts[i] = { title: v.title, description: v.description, tags: v.tags, caption: v.caption, file: v.file };
@@ -245,7 +262,7 @@ function renderRest() {
   $("#setup").innerHTML = rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("");
   $("#log").innerHTML = state.log.map((l) => `<div class="${esc(l.level)}"><time>${esc(l.time.slice(5))}</time> ${esc(l.text)}</div>`).join("") || "No activity yet this month.";
 }
-function render() { renderNow(); renderSlots(); renderStats(); renderVideos(); renderRest(); }
+function render() { renderNow(); renderTest(); renderSlots(); renderStats(); renderVideos(); renderRest(); }
 
 function showSetup(msg) {
   $("#setupCard").hidden = false; $("#repo").value = repo; $("#key").value = key; $("#forget").hidden = !(repo || key);
@@ -265,7 +282,7 @@ async function refresh() {
   }
 }
 function start() { clearInterval(timer); refresh(); timer = setInterval(() => { if (!document.hidden) refresh(); }, 20000); }
-setInterval(() => { if (state && !document.hidden && !$("#app").hidden) { renderNow(); renderRest(); } }, 2000);
+setInterval(() => { if (state && !document.hidden && !$("#app").hidden) { renderNow(); renderTest(); renderRest(); } }, 2000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 
 document.addEventListener("click", async (ev) => {
