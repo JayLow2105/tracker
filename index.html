@@ -277,15 +277,20 @@ function renderPerf(s) {
                  [t.full_watch_pct == null ? "–" : `${n(t.full_watch_pct)}%`, "watch to the end"]];
   const grp = (title, g) => g.length ? `<div class="card"><h3>${title}</h3><div class="tbl-wrap" style="margin-top:0"><table class="perf grp"><tr><th></th><th>videos</th><th>views</th><th>watch</th><th>to end</th><th>likes</th></tr>${
     g.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.n}</td><td>${n(x.views)}</td><td>${n(x.avg_watch_s)} s</td><td>${fw(x.full_watch_pct)}</td><td>${n(x.like_pct, 1)}%</td></tr>`).join("")}</table></div></div>` : "";
-  const rows = p.rows.map((r) => `<tr class="${r.ours ? "" : "dim"}"><td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.topic)}</a>` : esc(r.topic)}${r.ours ? "" : " <span class='sub'>(earlier video)</span>"}</td>
+  const shown = perfAll ? p.rows : p.rows.slice(0, PERF_ROWS);
+  const rows = shown.map((r) => `<tr class="${r.ours ? "" : "dim"}"><td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.topic)}</a>` : esc(r.topic)}${r.ours ? "" : " <span class='sub'>(earlier video)</span>"}</td>
     <td>${esc(r.kind || "")}</td><td>${esc(r.slot || "")}</td><td>${r.views}</td><td>${r.likes}</td><td>${n(r.avg_watch_s, 1)} s</td><td>${fw(r.full_watch_pct)}</td>
     <td>${r.drop_at_s == null ? "–" : `0:${String(r.drop_at_s).padStart(2, "0")}`}</td><td>${r.comments}</td><td>${r.shares}</td><td>${r.followers}</td></tr>`).join("");
   el.innerHTML = `${p.notes.length ? `<div class="card"><ul class="perf-notes">${p.notes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     <div class="stats" style="margin-top:12px">${tiles.map(([b, l]) => `<div class="card stat"><b>${esc(b)}</b><span>${l}</span></div>`).join("")}</div>
     <div class="perf-groups">${grp("Disaster or funny", p.kinds)}${grp("Post time", p.slots)}</div>
-    <div class="card" style="margin-top:12px"><div class="sub">Every video, newest first. "Watch" is the average watch time, "to end" is the share who watched the whole video (green 20%+, red under 10%), "most leave" is when most viewers swiped away. Numbers from TikTok Studio, read ${p.updated ? esc(p.updated.replace("T", " ").slice(0, 16)) : "–"}. Comparisons leave out videos under a day old.</div>
-    <div class="tbl-wrap"><table class="perf"><tr><th>Video</th><th>kind</th><th>time</th><th>views</th><th>likes</th><th>watch</th><th>to end</th><th>most leave</th><th>comments</th><th>shares</th><th>followers</th></tr>${rows}</table></div></div>`;
+    <div class="card" style="margin-top:12px"><div class="sub">Videos, newest first. "Watch" is the average watch time, "to end" is the share who watched the whole video (green 20%+, red under 10%), "most leave" is when most viewers swiped away. Numbers from TikTok Studio, read ${p.updated ? esc(p.updated.replace("T", " ").slice(0, 16)) : "–"}. Comparisons leave out videos under a day old.</div>
+    <div class="tbl-wrap"><table class="perf"><tr><th>Video</th><th>kind</th><th>time</th><th>views</th><th>likes</th><th>watch</th><th>to end</th><th>most leave</th><th>comments</th><th>shares</th><th>followers</th></tr>${rows}</table></div>
+    ${p.rows.length > PERF_ROWS ? `<div class="row" style="margin-top:12px"><button data-perf-all>${perfAll ? `Show the newest ${PERF_ROWS} only` : `Show all ${p.rows.length} videos`}</button></div>` : ""}</div>`;
 }
+const PERF_ROWS = 10;
+let perfAll = false;
+document.addEventListener("click", (ev) => { if (ev.target.closest("[data-perf-all]")) { perfAll = !perfAll; renderPerf(state); } });
 
 function renderStats() {
   const t = state.stats, items = [[t.posted, "posted in total"], [t.posted_week, "posted, last 7 days"], [t.scheduled, "scheduled, waiting"], [t.failed_week, "failed, last 7 days"]];
