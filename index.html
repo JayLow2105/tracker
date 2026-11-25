@@ -112,9 +112,6 @@ table.perf.grp th:first-child, table.perf.grp td:first-child { min-width: 0; }
 table.perf.grp th, table.perf.grp td { padding: 6px 5px; }
 table.perf a { color: inherit; }
 .good { color: var(--green); font-weight: 700; } .weak { color: var(--red); font-weight: 700; }
-.tabs { display: flex; gap: 6px; margin: 0 0 16px; border-bottom: 1px solid var(--line); }
-.tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 12px 9px; color: var(--muted); }
-.tabs button.on { color: var(--ink); border-bottom-color: var(--red); background: none; }
 .weeks { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
 .weeks button { white-space: nowrap; flex: none; }
 .wk-head h3 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
@@ -137,13 +134,85 @@ table.perf a { color: inherit; }
 .wk-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
 .wk-cols > .card { min-width: 0; }
 .wk-cols h3, .wk-card h3 { font-size: 15px; margin: 0 0 10px; }
+.office-wrap { --floor: #ead9bb; --plank: #dcc8a4; --wall: #8a7350; --desk: #b0845a; --rugA: .26; border-radius: 16px; border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+@media (prefers-color-scheme: dark) { .office-wrap { --floor: #2b2621; --plank: #332d27; --wall: #5d5040; --desk: #7a5c3e; --rugA: .3; } }
+.office-banner { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
+.office-banner b { font-weight: 800; }
+.office-banner .legend { margin-left: auto; display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.office-banner .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.office-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#officeMap { display: block; width: 100%; min-width: 980px; height: auto; color: var(--ink); font-family: inherit; }
+#officeMap .zone { cursor: pointer; }
+#officeMap .zone .rug { opacity: var(--rugA); transition: opacity .2s; }
+#officeMap .zone:hover .rug { opacity: .42; }
+#officeMap .zone .ring { fill: none; stroke: transparent; stroke-width: 4; stroke-linejoin: round; }
+#officeMap .zone.sel .ring { stroke: var(--ink); }
+#officeMap .zone.busy .ring { stroke: var(--amber); animation: zone-pulse 1.2s ease-in-out infinite; }
+#officeMap .zone.bad .ring { stroke: var(--red); }
+#officeMap .zname { font-size: 18px; font-weight: 800; fill: #fff; }
+#office { width: min(1500px, 100vw - 32px); margin-left: 50%; transform: translateX(-50%); }
+#officeMap .tag { font-size: 11.5px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; text-anchor: middle; }
+#officeMap .agent { transition: transform 2.4s linear; cursor: pointer; }
+#officeMap .lrug { opacity: .3; }
+#officeMap.noanim .agent, #officeMap.noanim #pkg { transition: none; }
+#officeMap #pkg { transition: transform 1.8s ease-in-out, opacity .4s; font-size: 24px; }
+#officeMap .pose { transition: transform .45s ease; }
+#officeMap .bub { display: none; font-size: 15px; text-anchor: middle; }
+#officeMap .cig, #officeMap .puffs, #officeMap .shut { display: none; }
+#officeMap .agent[class*="act-"] .bub { display: inline; animation: bub-float 1.8s ease-in-out infinite; }
+@keyframes bub-float { 50% { transform: translateY(-4px); } }
+@keyframes puff { 0% { opacity: .75; transform: translate(0, 0) scale(.5); } 100% { opacity: 0; transform: translate(7px, -24px) scale(1.7); } }
+#officeMap .act-nap .pose { transform: translate(2px, -11px) rotate(-63.4deg); }
+#officeMap .act-nap .shut { display: inline; } #officeMap .act-nap .eyes, #officeMap .act-nap .shadow { display: none; }
+#officeMap .act-chat .hd { animation: ag-bob .7s ease-in-out infinite; }
+#officeMap .act-game .arm1 { animation: ag-type .26s ease-in-out infinite; } #officeMap .act-game .arm2 { animation: ag-type .26s ease-in-out .13s infinite; }
+#officeMap .act-game .hd { animation: ag-bob .52s ease-in-out infinite; }
+#officeMap .act-video .hd { animation: ag-bob 1.7s ease-in-out infinite; }
+#officeMap .act-smoke .cig, #officeMap .act-smoke .puffs { display: inline; }
+#officeMap .act-smoke .puffs circle { transform-box: fill-box; transform-origin: center; animation: puff 2.4s ease-out infinite; }
+#officeMap .act-smoke .puffs circle + circle { animation-delay: 1.2s; }
+#officeMap .dots, #officeMap .tick { display: none; }
+#officeMap .agent.busy .dots, #officeMap .agent.done .tick { display: inline; }
+@keyframes zone-pulse { 50% { stroke-opacity: .35; } }
+@keyframes ag-bob { 50% { transform: translateY(1.6px); } }
+@keyframes ag-type { 50% { transform: translateY(-3px); } }
+@keyframes ag-blink { 50% { opacity: .35; } }
+@keyframes ag-step { 0%, 100% { transform: rotate(14deg); } 50% { transform: rotate(-14deg); } }
+#officeMap .agent.busy .hd { animation: ag-bob .5s ease-in-out infinite; }
+#officeMap .agent.busy .arm1 { animation: ag-type .32s ease-in-out infinite; }
+#officeMap .agent.busy .arm2 { animation: ag-type .32s ease-in-out .16s infinite; }
+#officeMap .agent.busy .dots { animation: ag-blink .9s ease-in-out infinite; }
+#officeMap .agent.walking .leg1 { animation: ag-step .36s linear infinite; transform-origin: 0 -16px; }
+#officeMap .agent.walking .leg2 { animation: ag-step .36s linear -.18s infinite; transform-origin: 0 -16px; }
+#officeMap .agent.walking .hd { animation: ag-bob .36s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { #officeMap .agent, #officeMap #pkg { transition: none; } #officeMap .agent *, #officeMap .zone .ring { animation: none !important; } }
+.room-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+.room-chips button { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; text-align: left; }
+.room-chips button i { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+.room-chips button span { color: var(--muted); font-weight: 400; }
+.room-chips button.sel { border-color: var(--ink); }
+.room-chips button.busy { background: var(--amber-soft); border-color: var(--amber); }
+.room-chips button.busy span { color: var(--amber); font-weight: 700; }
+.room-chips button.bad span { color: var(--red); font-weight: 700; }
+.room-head { margin-top: 18px; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.room-head h3 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+.room-head .about { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.room-head > div { flex: 1; min-width: 200px; }
+.dept-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 12px; }
+.dept-cols > .card { min-width: 0; }
+.dept-cols h3 { font-size: 15px; margin: 0 0 10px; }
+.feed { font-size: 13px; line-height: 1.45; }
+.feed div + div { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); }
+.feed time { color: var(--muted); font-size: 12px; display: block; }
+.feed .WARNING { color: var(--amber); } .feed .ERROR { color: var(--red); }
+#officeMap .leg1, #officeMap .leg2 { transform-box: fill-box; transform-origin: 50% 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="logo"><i></i></div>
-    <div><h1>Tracker</h1><div class="sub" id="seen">Not connected</div></div>
+    <div><h1>Studio HQ</h1><div class="sub" id="seen">Not connected</div></div>
     <button id="settingsBtn" hidden>Settings</button>
   </header>
 
@@ -159,24 +228,34 @@ table.perf a { color: inherit; }
   </div>
 
   <div id="app" hidden>
-    <nav class="tabs"><button data-tab="main" class="on">Today</button><button data-tab="week">Weekly report</button></nav>
-    <div id="tab-main">
-    <div class="card" id="now"></div>
-    <div class="card" id="test" hidden style="margin-top:12px"></div>
-    <h2>Today</h2><div class="slots" id="slots"></div>
-    <h2>Totals</h2><div class="stats" id="stats"></div>
-    <h2>How videos are doing on TikTok</h2><div id="perf"></div>
-    <h2>Videos</h2>
-    <div class="filters">
-      <button data-filter="all" class="on">All</button><button data-filter="posted">Posted</button>
-      <button data-filter="scheduled">Scheduled</button><button data-filter="todo">Not on YouTube yet</button><button data-filter="failed">Problems</button>
-    <button data-filter="test">Tests</button>
+    <div id="office"></div>
+  <div class="room-head" id="roomHead" hidden></div>
+
+    <div data-panel="floor">
+      <h2>Right now</h2>
+      <div class="card" id="now"></div>
+      <div class="card" id="test" hidden style="margin-top:12px"></div>
+      <h2>Today</h2><div class="slots" id="slots"></div>
     </div>
-    <div id="videos"></div>
-    <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
-    <h2>Activity log</h2><div class="card"><div class="log" id="log"></div></div>
+    <div data-panel="dept" hidden><div id="dept"></div></div>
+    <div data-panel="publishing" hidden>
+      <div id="pubInfo"></div>
+      <h2>Totals</h2><div class="stats" id="stats"></div>
+      <h2>Video library</h2>
+      <div class="filters">
+        <button data-filter="all" class="on">All</button><button data-filter="posted">Posted</button>
+        <button data-filter="scheduled">Scheduled</button><button data-filter="todo">Not on YouTube yet</button><button data-filter="failed">Problems</button>
+        <button data-filter="test">Tests</button>
+      </div>
+      <div id="videos"></div>
     </div>
-    <div id="tab-week" hidden><div id="weekly"></div></div>
+    <div data-panel="rnd" hidden><div id="rnd"></div></div>
+  <div data-panel="qa" hidden><h2>How videos are doing on TikTok</h2><div id="perf"></div></div>
+    <div data-panel="ceo" hidden><div id="weekly" style="margin-top:14px"></div></div>
+    <div data-panel="ops" hidden>
+      <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
+      <h2>Activity log</h2><div class="card"><div class="log" id="log"></div></div>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -329,12 +408,12 @@ const thumbs = new IntersectionObserver((items) => items.forEach(async (it) => {
 function renderRest() {
   const mins = stale(), el = $("#seen");
   el.textContent = `Mac last reported ${ago(state.published_at)} ago`; el.classList.toggle("bad", mins > 25);
-  const u = state.setup, rows = [["Posts every day at", u.times.join(", ")], ["Kinds, in order", u.kinds.join(", ")], ["Starts making each video", `${u.prepare_minutes} minutes before its post time`],
+  const u = state.setup, rows = [["Posts every day at", u.times.join(", ")], ["Kinds, in order", u.kinds.join(", ") + (u.kinds_review ? " (set by the weekly review)" : "")], ["Starts making each video", `${u.prepare_minutes} minutes before its post time`],
     ["Video length", `${u.length}, ${u.scenes} scenes`], ["Weekend cover", u.premake], ["Days off", u.skip_dates.length ? u.skip_dates.join(", ") : "none"]];
   $("#setup").innerHTML = rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("");
   $("#log").innerHTML = state.log.map((l) => `<div class="${esc(l.level)}"><time>${esc(l.time.slice(5))}</time> ${esc(l.text)}</div>`).join("") || "No activity yet this month.";
 }
-function render() { renderNow(); renderTest(); renderSlots(); renderStats(); renderPerf(state); renderWeek(state); renderVideos(); renderRest(); }
+function render() { renderNow(); renderTest(); renderSlots(); renderStats(); renderPerf(state); renderWeek(state); renderVideos(); renderRest(); renderOffice(state); }
 
 function showSetup(msg) {
   $("#setupCard").hidden = false; $("#repo").value = repo; $("#key").value = key; $("#forget").hidden = !(repo || key);
@@ -388,17 +467,13 @@ $("#modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") cl
 start();
 // ---------- weekly report tab ----------
 let weekSel = null, weekKey = "";
-function showTab(name) {
-  document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
-  $("#tab-main").hidden = name !== "main"; $("#tab-week").hidden = name !== "week";
-  try { localStorage.setItem("tracker.tab", name); } catch (e) {}
-}
+const STEP = { topic: "Topic", script: "Script", animation: "Animation", other: "Not automatic" };
 function renderWeek(s) {
   const W = s.weekly, el = $("#weekly");
   if (!W || !W.weeks.length) { el.innerHTML = `<div class="card sub">No videos posted yet.</div>`; return; }
   if (!weekSel || !W.weeks.some((w) => w.week === weekSel)) weekSel = (W.weeks.find((w) => w.done && w.summary.with_stats) || W.weeks[0]).week;
   const w = W.weeks.find((x) => x.week === weekSel);
-  const key = JSON.stringify([W.weeks.map((x) => x.week), w, W.writing]);
+  const key = JSON.stringify([W.weeks.map((x) => x.week), w, W.writing, W.active]);
   if (key === weekKey) return;   // unchanged: don't redraw (keeps the scroll position)
   weekKey = key;
   const day = (d) => new Date(`${d}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" });
@@ -452,8 +527,11 @@ function renderWeek(s) {
       <div class="card"><h3>⚠️ What didn't work</h3>${lst(r.didnt)}</div>
     </div>
     <div class="card wk-card" style="margin-top:12px"><h3>🔧 What to change next week</h3>
-      <ol class="wk-list">${r.improve.map((x) => `<li>${esc(x.change)}<span class="why">${esc(x.why)}</span></li>`).join("")}</ol>
-      <div class="sub" style="margin-top:10px">The agent reads these when it picks topics next week.</div></div>
+      <ol class="wk-list">${r.improve.map((x) => `<li>${STEP[x.step] ? `<span class="badge ${x.step === "other" ? "" : "made"}">${STEP[x.step]}</span> ` : ""}${esc(x.change)}<span class="why">${esc(x.why)}</span></li>`).join("")}</ol>
+      ${r.mix ? `<div style="margin-top:12px"><span class="badge made">Post mix</span> ${r.mix.map((k, i) => `${esc((s.setup.times || [])[i] || "")} ${esc(k)}`).join(" · ")}</div>` : ""}
+      <div class="meta">${W.active === w.week ? "✅ Applied automatically to the videos being made now, each at the step shown. \"Not automatic\" ones are for you to decide."
+        : !w.review_complete ? "This review covers part of a week, so it is not applied. The full review on Monday is."
+        : "These were applied to the videos made the week after."}</div></div>
     ${r.ideas.length ? `<div class="card wk-card" style="margin-top:12px"><h3>💡 Ideas to try</h3>${lst(r.ideas)}</div>` : ""}` : "";
   const grp = (t, g) => g.length ? `<div class="card"><h3>${t}</h3><div class="tbl-wrap" style="margin-top:0"><table class="perf grp"><tr><th></th><th>videos</th><th>views</th><th>watch</th><th>to end</th><th>likes</th></tr>${
     g.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.n}</td><td>${n(x.views)}</td><td>${n(x.avg_watch_s)} s</td><td>${fw(x.full_watch_pct)}</td><td>${n(x.like_pct, 1)}%</td></tr>`).join("")}</table></div></div>` : "";
@@ -465,6 +543,7 @@ function renderWeek(s) {
     <div class="card wk-head" style="margin-top:12px">
       <h3>Week of ${range(w)}</h3>
       ${r && r.headline ? `<div class="wk-verdict">${esc(r.headline)}</div>` : ""}
+      ${r && r.last_changes ? `<div class="wk-vid"><div class="why"><b>Did the previous week's changes help?</b> ${esc(r.last_changes)}</div></div>` : ""}
       <div class="meta">${status}</div>
       ${writeBtn ? `<div class="row" style="margin-top:12px">${writeBtn}</div>` : ""}
     </div>
@@ -479,11 +558,324 @@ function renderWeek(s) {
     <div class="tbl-wrap"><table class="perf"><tr><th>Video</th><th>kind</th><th>day</th><th>time</th><th>views</th><th>likes</th><th>watch</th><th>to end</th><th>most leave</th><th>comments</th></tr>${rows}</table></div></div>`;
 }
 document.addEventListener("click", (ev) => {
-  const t = ev.target.closest("[data-tab], [data-week]"); if (!t) return;
-  if (t.dataset.tab) { showTab(t.dataset.tab); window.scrollTo(0, 0); }
-  else { weekSel = t.dataset.week; renderWeek(state); }
+  const t = ev.target.closest("[data-week]"); if (!t) return;
+  weekSel = t.dataset.week; renderWeek(state);
 });
-showTab((() => { try { return localStorage.getItem("tracker.tab") === "week" ? "week" : "main"; } catch (e) { return "main"; } })());
+// ---------- the office: one open floor; each department is a zone, its agent works at the desk while the
+// video is at that step and hangs out in the coffee lounge otherwise. z = [x, y, w, h] on a 1000 x 620 floor.
+// from/to: the progress percent range of that step; step: which weekly-review changes the team gets.
+const ROOMS = [
+  { id: "ceo", who: "You", name: "CEO Office", tag: "CEO (you)", color: "#c9a227", z: [40, 40, 280, 220], about: "Your room. The weekly report: what worked, what didn't, and the changes the teams apply next week." },
+  { id: "rnd", who: "Dexter", name: "R&D Lab", tag: "R&D scout", color: "#db2777", z: [350, 40, 250, 220], about: "Scouts what is popular in short videos, works out the formula behind it, and proposes new ideas for Research. Copies the formula, never the content." },
+  { id: "qa", who: "Ada", name: "Analytics (QA)", tag: "Analyst", color: "#64748b", z: [630, 40, 240, 220], about: "Reads every video's numbers from TikTok Studio once a day and writes the weekly review for the CEO." },
+  { id: "ops", who: "Otto", name: "Operations", tag: "Operations", color: "#7c7568", z: [900, 40, 220, 220], about: "Keeps the schedule, the Mac and the TikTok login running, and keeps the activity log." },
+  { id: "research", who: "Riley", name: "Research", tag: "Researcher", color: "#2f6fde", z: [40, 350, 295, 220], from: 0, to: 8, step: "topic", log: /premise|topic prompt|video kind/i, about: "Picks each video's \"What if\" question, leaning toward what viewers watched longest." },
+  { id: "script", who: "Sam", name: "Script Writing", tag: "Writer", color: "#d98a00", z: [365, 350, 295, 220], from: 8, to: 14, step: "script", log: /story|rewrit|voiceover length|still \d|re-voicing/i, about: "Writes the 8-scene narration and rewrites it until the video is 61 to 70 seconds." },
+  { id: "compliance", who: "Casey", name: "Compliance", tag: "Reviewer", color: "#1f9d55", z: [690, 350, 295, 220], from: 14, to: 20, log: /safety/i, about: "An independent safety review of every script and caption before anything is made." },
+  { id: "voice", who: "Vera", name: "Voice Studio", tag: "Voice artist", color: "#8b5cf6", z: [1015, 350, 285, 220], from: 20, to: 28, log: /voiceover/i, about: "Records the narration, times the subtitles, and adds the countdown ticks and boom." },
+  { id: "animation", who: "Andy", name: "Animation Studio", tag: "Animator", color: "#e0262e", z: [40, 660, 400, 190], from: 28, to: 60, step: "animation", log: /animation/i, about: "Draws the video in code: every scene, the stickman's acting, the camera." },
+  { id: "qc", who: "Quinn", name: "Quality Control", tag: "QC inspector", color: "#0e9f9a", z: [470, 660, 380, 190], from: 60, to: 85, log: /visual review|review notes|unresolved|compile/i, about: "Compiles and test-renders the animation, looks at the frames, and sends it back for fixes (up to 5 rounds)." },
+  { id: "publishing", who: "Parker", name: "Publishing", tag: "Publisher", color: "#e8590c", z: [880, 660, 420, 190], from: 85, to: 101, log: /tiktok posted|video ready|built in|copied for|scheduled|post failed|waiting until/i, about: "Renders the final video, posts it to TikTok at its time, and keeps the library." },
+];
+// Each agent's name: [staff] in settings.toml, or the default above.
+const whoOf = (r, s) => (s && s.setup && s.setup.staff && s.setup.staff[r.id]) || r.who;
+const PANEL = { ceo: "ceo", rnd: "rnd", qa: "qa", ops: "ops", publishing: "publishing", floor: "floor" };
+const FW_ = 1700, FD_ = 900;   // the floor: width and depth
+const LOUNGE = [1150, 40, 210, 220], GAME = [1420, 40, 240, 220], NAP = [1420, 350, 240, 220], SMOKE = [1420, 660, 240, 190];
+// What an agent does when it has no work: where it goes, its pose (CSS class) and the bubble over its head.
+const ACTS = {
+  chat: { zone: LOUNGE, cls: "act-chat", bub: "💬", spots: [[1190, 160], [1236, 172], [1296, 222], [1336, 208]] },
+  game: { zone: GAME, cls: "act-game", bub: "🎮", spots: [[1458, 100], [1502, 100]] },
+  video: { zone: GAME, cls: "act-video", bub: "📺", spots: [[1572, 190], [1616, 190]] },
+  nap: { zone: NAP, cls: "act-nap", bub: "💤", spots: [[1538, 388], [1538, 452], [1538, 516]] },
+  smoke: { zone: SMOKE, cls: "act-smoke", bub: "🚬", spots: [[1480, 750], [1548, 726], [1604, 780]] },
+};
+const ACT_CLS = Object.values(ACTS).map((a) => a.cls);
+const doing = {};   // production agent id -> { act, slot } while on a break, or null when at its own desk
+function pickAct(id, deskToo) {
+  const taken = new Set(Object.entries(doing).filter(([k, v]) => k !== id && v).map(([, v]) => v.act + v.slot));
+  const cur = doing[id], opts = [];
+  for (const [act, a] of Object.entries(ACTS)) a.spots.forEach((_, slot) => { if (!taken.has(act + slot) && !(cur && cur.act === act)) opts.push({ act, slot }); });
+  if (deskToo && cur) opts.push(null, null, null);   // sometimes wander back to the desk
+  doing[id] = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
+}
+const HALL_X = 1350;   // the corridor down the right side that joins the hallways in front of each row
+let roomSel = "floor", officeKey = "", deptKey = "", officeBuilt = false;
+const agentAt = {};   // where each agent stands now
+const ISO = (x, y, z = 0) => [(x - y) * 0.7 + 646, (x + y) * 0.35 + 110 - z];   // floor (x, y, height) -> screen
+const ipts = (a) => a.map((p) => ISO(...p).map((n) => n.toFixed(1)).join(",")).join(" ");
+const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${[n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(Math.max(0, Math.min(255, v * k)))).join(",")})`; };
+// A box standing on the floor: its top and the two faces that look toward the viewer.
+function ibox(x, y, w, d, h, color, z0 = 0, op = 1) {
+  const o = op < 1 ? ` fill-opacity="${op}"` : "";
+  return `<polygon points="${ipts([[x, y + d, z0 + h], [x + w, y + d, z0 + h], [x + w, y + d, z0], [x, y + d, z0]])}" fill="${shade(color, 0.84)}"${o}/>
+    <polygon points="${ipts([[x + w, y, z0 + h], [x + w, y + d, z0 + h], [x + w, y + d, z0], [x + w, y, z0]])}" fill="${shade(color, 0.68)}"${o}/>
+    <polygon points="${ipts([[x, y, z0 + h], [x + w, y, z0 + h], [x + w, y + d, z0 + h], [x, y + d, z0 + h]])}" fill="${color}"${o}/>`;
+}
+const desk = (r) => [r.z[0] + r.z[2] / 2 - 34, r.z[1] + r.z[3] / 2 - 26];
+const seat = (r) => { const [dx, dy] = desk(r); return [dx + 12, dy + 46]; };
+
+function buildOffice() {
+  const dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+  const C = dark ? { floor: "#4a3d30", plank: "#40342a", wall: "#6b5a48", trim: "#57493b", wood: "#9a744d", glass: "#9fc4d8", win: "#31506b" }
+                 : { floor: "#e6cda3", plank: "#d6b987", wall: "#f6eedf", trim: "#d9cbb2", wood: "#b98a5c", glass: "#bfe0ee", win: "#a9d8f0" };
+  const plant = (x, y) => { const [px, py] = ISO(x, y, 12); return `${ibox(x - 6, y - 6, 12, 12, 12, "#a9744f")}<circle cx="${px}" cy="${py - 12}" r="13" fill="#3f9d5c"/><circle cx="${px - 9}" cy="${py - 5}" r="8" fill="#57b572"/><circle cx="${px + 9}" cy="${py - 6}" r="8" fill="#2f8a4d"/>`; };
+  const planks = Array.from({ length: Math.floor(FD_ / 40) - 1 }, (_, i) => { const a = ISO(0, 40 + i * 40), b = ISO(FW_, 40 + i * 40); return `<path d="M${a} L${b}" stroke="${C.plank}" stroke-width="2"/>`; }).join("");
+  // outer shell: floor slab, and the two back walls with windows (the front is cut away so you can see in)
+  const windowsX = [60, 210, 360, 510, 660, 810, 960, 1110, 1260, 1410, 1560].map((x) => `<polygon points="${ipts([[x, 0, 78], [x + 80, 0, 78], [x + 80, 0, 30], [x, 0, 30]])}" fill="${C.win}" stroke="${C.trim}" stroke-width="3"/>`).join("");
+  const windowsY = [60, 220, 380, 540, 700].map((y) => `<polygon points="${ipts([[0, y, 78], [0, y + 80, 78], [0, y + 80, 30], [0, y, 30]])}" fill="${shade(C.win, 0.86)}" stroke="${C.trim}" stroke-width="3"/>`).join("");
+  const shell = `${ibox(0, 0, FW_, FD_, 16, C.floor, -16)}${planks}
+    ${ibox(-10, -10, FW_ + 10, 10, 96, C.wall)}${ibox(-10, 0, 10, FD_, 96, C.wall)}
+    <polygon points="${ipts([[0, 0, 96], [FW_, 0, 96], [FW_, 0, 0], [0, 0, 0]])}" fill="${shade(C.wall, 0.94)}"/><polygon points="${ipts([[0, 0, 96], [0, FD_, 96], [0, FD_, 0], [0, 0, 0]])}" fill="${shade(C.wall, 0.82)}"/>${windowsX}${windowsY}`;
+  const [lx, ly, lw, lh] = LOUNGE;
+  // a room's name on a small plate mounted along the top of its own back wall (drawn in that wall's perspective)
+  const sign = (x, y, w, h, text, color) => { const tw = text.length * 10.5 + 22, x1 = x + w - 40; return `<g transform="matrix(0.7 0.35 0 1 ${(646 - 0.7 * y).toFixed(1)} ${(110 + 0.35 * y).toFixed(1)})">
+    <rect x="${x1 - tw + 10}" y="-38" width="4" height="6" fill="${C.trim}"/><rect x="${x1 - 14}" y="-38" width="4" height="6" fill="${C.trim}"/>
+    <rect x="${x1 - tw}" y="-62" width="${tw}" height="25" rx="5" fill="${color}" stroke="#15181d" stroke-opacity=".35" stroke-width="1.5"/><text class="zname" x="${x1 - tw / 2}" y="-43.5" text-anchor="middle">${esc(text)}</text></g>`; };
+  const carpet = (x, y, w, h, color, cls) => `<polygon class="${cls}" points="${ipts([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])}" ${color ? `fill="${color}"` : ""}/>`;
+  const glass = (x, y, w, h) => `${ibox(x, y - 4, w, 4, 34, C.glass, 0, 0.45)}${ibox(x - 4, y - 4, 4, h + 4, 34, C.glass, 0, 0.45)}${ibox(x - 4, y - 4, 4, 4, 38, C.trim)}${ibox(x + w - 4, y - 4, 4, 4, 38, C.trim)}${ibox(x - 4, y + h - 4, 4, 4, 38, C.trim)}`;
+  const front = (x, y, w, h) => { const c = x + w / 2; return `${ibox(x + w - 4, y, 4, h - 4, 34, C.glass, 0, 0.4)}${ibox(x, y + h - 4, w / 2 - 26, 4, 34, C.glass, 0, 0.4)}${ibox(c + 26, y + h - 4, w / 2 - 26, 4, 34, C.glass, 0, 0.4)}
+    ${ibox(c - 30, y + h - 4, 4, 4, 44, C.trim)}${ibox(c + 26, y + h - 4, 4, 4, 44, C.trim)}${ibox(c - 30, y + h - 4, 60, 4, 4, C.trim, 44)}${ibox(c + 26, y + h, 4, 30, 40, C.wood)}${ibox(x + w - 4, y + h - 4, 4, 4, 38, C.trim)}`; };
+  const lamp = (px, py) => `${ibox(px, py, 4, 4, 48, "#6b7280")}${ibox(px - 7, py - 7, 18, 18, 12, "#fde68a", 48)}`;
+  const cabinet = (px, py, c = "#9ca3af") => `${ibox(px, py, 30, 22, 34, c)}${ibox(px + 30, py + 6, 1, 10, 4, "#374151", 20)}`;
+  const sofa = (px, py, w, c) => `${ibox(px, py, w, 8, 30, shade(c, 0.85))}${ibox(px, py + 8, w, 24, 15, c)}`;
+  const shelf = (px, py, w, hh) => `${ibox(px, py, w, 14, hh, C.wood)}${[0.36, 0.68].map((k) => { const a = ISO(px, py + 14, hh * k), b = ISO(px + w, py + 14, hh * k); return `<path d="M${a} L${b}" stroke="${shade(C.wood, 0.6)}" stroke-width="2"/>`; }).join("")}`;
+  // extra furniture, different in every room (kept clear of the desk and the way to the door)
+  const more = (id, x, y, w, h) => ({
+    ceo: () => `${sofa(x + w - 112, y + 10, 84, "#7c5c3b")}${ibox(x + w - 98, y + 54, 52, 26, 12, C.wood)}${lamp(x + 20, y + h - 40)}`,
+    rnd: () => `${ibox(x + 128, y + 8, 76, 24, 26, "#e5e7eb")}${ibox(x + 138, y + 14, 8, 8, 12, "#22d3ee", 26)}${ibox(x + 156, y + 14, 8, 8, 18, "#f472b6", 26)}${ibox(x + 174, y + 14, 8, 8, 10, "#a3e635", 26)}${ibox(x + 158, y + 46, 16, 16, 16, "#6b7280")}`,
+    qa: () => `${cabinet(x + 110, y + 8)}${cabinet(x + 144, y + 8)}${lamp(x + 18, y + h - 40)}${ibox(x + w - 60, y + h - 70, 34, 26, 20, C.wood)}`,
+    ops: () => `${ibox(x + w - 74, y + 12, 46, 28, 30, "#d1d5db")}${ibox(x + w - 66, y + 16, 30, 18, 8, "#374151", 30)}${cabinet(x + 14, y + h - 60, "#f59e0b")}`,
+    research: () => { const [gx, gy] = ISO(x + 157, y + 21, 36); return `${shelf(x + 16, y + 6, 96, 56)}${ibox(x + 154, y + 18, 6, 6, 24, "#6b7280")}<circle cx="${gx}" cy="${gy}" r="12" fill="#3b82f6"/><path d="M${gx - 8} ${gy - 3}q5 -6 10 0t6 5" fill="none" stroke="#86efac" stroke-width="3"/>${ibox(x + 16, y + h - 70, 8, 32, 32, "#1d4ed8")}${ibox(x + 24, y + h - 70, 26, 32, 16, "#2563eb")}${lamp(x + 60, y + h - 34)}`; },
+    script: () => `${shelf(x + 16, y + 6, 72, 50)}${ibox(x + 110, y + 10, 22, 28, 10, "#ffffff")}${ibox(x + 136, y + 12, 22, 26, 16, "#f3f4f6")}${ibox(x + 18, y + h - 62, 30, 30, 14, "#f59e0b")}${ibox(x + w - 56, y + h - 60, 24, 24, 26, "#9ca3af")}`,
+    compliance: () => `${[0, 1, 2].map((k) => cabinet(x + 16 + k * 34, y + 6)).join("")}${ibox(x + w - 70, y + h - 84, 28, 22, 36, C.wood)}${ibox(x + w - 68, y + h - 82, 24, 18, 4, "#ffffff", 36)}${lamp(x + 20, y + h - 40)}`,
+    voice: () => `${ibox(x + 46, y + 6, 84, 8, 34, "#1f2937")}${ibox(x + 46, y + 14, 8, 50, 34, "#1f2937")}${ibox(x + w - 78, y + 60, 18, 18, 34, "#111827")}${ibox(x + w - 78, y + 100, 18, 18, 34, "#111827")}${ibox(x + 18, y + h - 60, 40, 26, 16, "#7c3aed")}`,
+    animation: () => `${ibox(x + w - 180, y + 10, 84, 34, 24, "#e5e7eb")}${ibox(x + w - 172, y + 16, 10, 10, 8, "#ef4444", 24)}${ibox(x + w - 156, y + 16, 10, 10, 8, "#3b82f6", 24)}${ibox(x + w - 140, y + 16, 10, 10, 8, "#facc15", 24)}${sofa(x + 18, y + h - 62, 70, "#be123c")}${lamp(x + w - 60, y + h - 40)}`,
+    qc: () => `${shelf(x + 16, y + 6, 84, 44)}${ibox(x + 22, y + 8, 18, 12, 12, "#c8a06a", 44)}${ibox(x + 50, y + 8, 22, 12, 16, "#d9b47e", 44)}${ibox(x + w - 130, y + h - 78, 74, 30, 22, "#d1d5db")}${lamp(x + w - 50, y + h - 70)}`,
+    publishing: () => `${shelf(x + 16, y + 6, 110, 50)}${ibox(x + 30, y + h - 62, 44, 26, 18, "#60a5fa")}${ibox(x + 36, y + h - 58, 16, 16, 12, "#c8a06a", 18)}${ibox(x + 150, y + 10, 40, 26, 30, "#d1d5db")}`,
+  }[id] || (() => ""))();
+  const brk = (z, color, inner) => `<g>${carpet(...z, color, "lrug")}${glass(...z)}${inner}${front(...z)}</g>`;
+  const [gx0, gy0] = GAME, [nx0, ny0] = NAP, [bx0, by0, bw0, bh0] = SMOKE;
+  const arcade = (ax, c) => `${ibox(ax, gy0 + 8, 32, 26, 62, "#312e81")}${ibox(ax, gy0 + 34, 32, 8, 28, "#4338ca")}<polygon points="${ipts([[ax + 4, gy0 + 34, 56], [ax + 28, gy0 + 34, 56], [ax + 28, gy0 + 34, 36], [ax + 4, gy0 + 34, 36]])}" fill="${c}"/>`;
+  const gameRoom = brk(GAME, "#7c3aed", `${arcade(gx0 + 22, "#22d3ee")}${arcade(gx0 + 66, "#f472b6")}
+    ${ibox(gx0 + 136, gy0 + 76, 84, 8, 10, "#374151")}${ibox(gx0 + 132, gy0 + 78, 92, 5, 46, "#111827", 10)}<polygon points="${ipts([[gx0 + 136, gy0 + 83, 52], [gx0 + 220, gy0 + 83, 52], [gx0 + 220, gy0 + 83, 14], [gx0 + 136, gy0 + 83, 14]])}" fill="#38bdf8"/>
+    ${ibox(gx0 + 30, gy0 + 140, 30, 30, 14, "#f59e0b")}${ibox(gx0 + 72, gy0 + 156, 28, 28, 14, "#10b981")}${ibox(gx0 + 134, gy0 + 160, 90, 24, 15, "#6d28d9")}${ibox(gx0 + 134, gy0 + 184, 90, 8, 30, "#5b21b6")}${plant(gx0 + 224, gy0 + 16)}`);
+  const napRoom = brk(NAP, "#0ea5e9", `${[0, 1, 2].map((k) => `${ibox(nx0 + 20, ny0 + 18 + k * 64, 104, 40, 14, "#e5e7eb")}${ibox(nx0 + 20, ny0 + 18 + k * 64, 6, 40, 26, C.wood)}${ibox(nx0 + 28, ny0 + 24 + k * 64, 22, 28, 6, "#ffffff", 14)}${ibox(nx0 + 56, ny0 + 20 + k * 64, 66, 36, 3, ["#93c5fd", "#fca5a5", "#86efac"][k], 14)}`).join("")}
+    ${ibox(nx0 + 170, ny0 + 14, 28, 24, 22, C.wood)}${lamp(nx0 + 182, ny0 + 60)}${plant(nx0 + 224, ny0 + 16)}${ibox(nx0 + 160, ny0 + 150, 50, 40, 12, "#1e3a8a")}`);
+  const smokeRoom = brk(SMOKE, "#94a3b8", `${ibox(bx0 + 20, by0 + 12, 96, 22, 16, C.wood)}${ibox(bx0 + 20, by0 + 8, 96, 5, 30, shade(C.wood, 0.8))}${ibox(bx0 + 112, by0 + 92, 6, 6, 30, "#6b7280")}${ibox(bx0 + 105, by0 + 85, 20, 20, 4, "#374151", 30)}
+    ${ibox(bx0 + bw0 - 60, by0 + 12, 34, 22, 40, "#4b5563")}${plant(bx0 + bw0 - 16, by0 + 60)}${plant(bx0 + 18, by0 + bh0 - 20)}`);
+  const lounge = `<g>${carpet(lx, ly, lw, lh, "#3f9d5c", "lrug")}${glass(lx, ly, lw, lh)}
+    ${ibox(lx + 12, ly + 10, 100, 10, 34, "#b9654a")}${ibox(lx + 12, ly + 20, 100, 28, 16, "#d98f73")}${ibox(lx + 12, ly + 20, 12, 28, 24, "#c9785c")}${ibox(lx + 100, ly + 20, 12, 28, 24, "#c9785c")}
+    ${ibox(lx + 126, ly + 10, 48, 26, 30, "#4b5563")}${ibox(lx + 132, ly + 14, 18, 16, 20, "#15181d", 30)}${ibox(lx + 158, ly + 16, 8, 8, 8, "#ffffff", 30)}${ibox(lx + 178, ly + 8, 26, 26, 60, "#dc2626")}${ibox(lx + 204, ly + 14, 1, 14, 30, "#fecaca", 20)}
+    ${plant(lx + lw - 16, ly + 60)}${front(lx, ly, lw, lh)}</g>`;
+  const zone = (r, i) => {
+    const [x, y, w, h] = r.z, [dx, dy] = desk(r), [sx, sy] = seat(r), big = r.id === "ceo";
+    const screen = ipts([[dx + 40, dy + 9, 44], [dx + 66, dy + 9, 44], [dx + 66, dy + 9, 27], [dx + 40, dy + 9, 27]]);
+    const furniture = `${ibox(dx, dy, big ? 96 : 74, 28, 4, C.wood, 20)}${ibox(dx + 3, dy + 3, 5, 22, 20, shade(C.wood, 0.8))}${ibox(dx + (big ? 88 : 66), dy + 3, 5, 22, 20, shade(C.wood, 0.8))}
+      ${big ? `<polygon points="${ipts([[dx + 44, dy + 6, 24.5], [dx + 66, dy + 6, 24.5], [dx + 66, dy + 22, 24.5], [dx + 44, dy + 22, 24.5]])}" fill="#fff" stroke="#15181d" stroke-width="1.5"/>`
+            : `${ibox(dx + 50, dy + 6, 6, 4, 4, "#15181d", 24)}${ibox(dx + 38, dy + 6, 30, 3, 20, "#15181d", 26)}<polygon points="${screen}" fill="${r.color}"/>`}
+      ${ibox(sx - 10, sy - 8, 20, 18, 12, "#4b5563")}${ibox(sx - 10, sy + 8, 20, 4, 30, "#374151")}`;
+    const extra = r.id === "ceo" ? `${ibox(x + 14, y + 4, 90, 14, 60, C.wood)}${[20, 40].map((z) => { const a = ISO(x + 14, y + 18, z), b = ISO(x + 104, y + 18, z); return `<path d="M${a} L${b}" stroke="${shade(C.wood, 0.6)}" stroke-width="2"/>`; }).join("")}${ibox(x + w - 70, y + h - 50, 50, 30, 14, "#c9a227")}`
+      : r.id === "rnd" ? `<polygon points="${ipts([[x + 16, y, 34], [x + 110, y, 34], [x + 110, y, 4], [x + 16, y, 4]])}" fill="#ffffff" stroke="${C.trim}" stroke-width="2"/>${[["#fde047", 24, 24], ["#f9a8d4", 46, 26], ["#86efac", 68, 22], ["#93c5fd", 90, 26], ["#fde047", 34, 12], ["#f9a8d4", 78, 11]].map(([c, ox, oz]) => `<polygon points="${ipts([[x + ox, y, oz + 7], [x + ox + 14, y, oz + 7], [x + ox + 14, y, oz - 3], [x + ox, y, oz - 3]])}" fill="${c}"/>`).join("")}${ibox(x + 16, y + h - 52, 30, 24, 22, "#e5e7eb")}`
+      : r.id === "ops" ? [0, 1].map((k) => { const rx = x + 16 + k * 34; return `${ibox(rx, y + 6, 26, 26, 62, "#1f2937")}${[0, 1, 2, 3].map((n) => { const [cx, cy] = ISO(rx + 7, y + 32, 52 - n * 12); return `<circle cx="${cx}" cy="${cy}" r="2.6" fill="${n % 2 ? "#55cf88" : "#f0b354"}"/>`; }).join("")}`; }).join("")
+      : r.id === "qa" ? `<polygon points="${ipts([[x + 20, y, 30], [x + 96, y, 30], [x + 96, y, 4], [x + 20, y, 4]])}" fill="#fff" stroke="${C.trim}" stroke-width="2"/><polyline points="${ipts([[x + 28, y, 10], [x + 44, y, 16], [x + 58, y, 12], [x + 74, y, 22], [x + 90, y, 26]])}" fill="none" stroke="#e0262e" stroke-width="2.5"/>`
+      : r.id === "publishing" ? `${ibox(x + w - 80, y + 8, 22, 22, 22, "#c8a06a")}${ibox(x + w - 54, y + 8, 22, 22, 22, "#c8a06a")}${ibox(x + w - 68, y + 9, 22, 20, 20, "#d9b47e", 22)}`
+      : r.id === "voice" ? `${ibox(x + 18, y + 10, 4, 4, 40, "#15181d")}${ibox(x + 14, y + 8, 12, 8, 10, "#6b7280", 40)}`
+      : r.id === "animation" ? `${ibox(x + 20, y + 6, 70, 4, 44, "#ffffff")}<polyline points="${ipts([[x + 30, y + 10, 16], [x + 46, y + 10, 34], [x + 60, y + 10, 20], [x + 78, y + 10, 36]])}" fill="none" stroke="#e0262e" stroke-width="2.5"/>`
+      : "";
+    return `<g class="zone" id="zn-${r.id}" data-room="${r.id}"><title>${esc(r.name)}</title>
+      ${carpet(x, y, w, h, r.color, "rug")}${carpet(x, y, w, h, "", "ring")}${glass(x, y, w, h)}${extra}${more(r.id, x, y, w, h)}${furniture}${plant(x + w - 16, y + 16)}
+      ${front(x, y, w, h)}</g>`;
+  };
+  const agent = (r) => `<g class="agent" id="ag-${r.id}" data-room="${r.id}"><title>${esc(r.name)}</title>
+    <g transform="scale(1.3)"><ellipse class="shadow" cx="0" cy="1" rx="14" ry="5" fill="#000" opacity=".18"/>
+    <g class="pose"><line class="leg1" x1="-5" y1="-16" x2="-6" y2="0" stroke="#15181d" stroke-width="4.5" stroke-linecap="round"/><line class="leg2" x1="5" y1="-16" x2="6" y2="0" stroke="#15181d" stroke-width="4.5" stroke-linecap="round"/>
+    <rect x="-11" y="-41" width="22" height="28" rx="9" fill="${r.color}"/>${r.id === "ceo" ? `<path d="M0 -40 l-3.5 5 3.5 13 3.5 -13z" fill="#e0262e"/>` : ""}
+    <line class="arm1" x1="7" y1="-33" x2="20" y2="-31" stroke="${r.color}" stroke-width="5.5" stroke-linecap="round"/><line class="arm2" x1="5" y1="-28" x2="17" y2="-27" stroke="${r.color}" stroke-width="5.5" stroke-linecap="round"/>
+    <path class="cig" d="M20 -31 l8 -2" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+    <g class="hd"><circle cx="0" cy="-51" r="11.5" fill="#fff" stroke="#15181d" stroke-width="3"/><g class="eyes"><circle cx="-3" cy="-52" r="1.6" fill="#15181d"/><circle cx="4" cy="-52" r="1.6" fill="#15181d"/></g><path class="shut" d="M-6 -52h4M2 -52h4" stroke="#15181d" stroke-width="1.6" stroke-linecap="round"/></g></g>
+    <g class="puffs" fill="#9ca3af"><circle cx="30" cy="-38" r="3.5"/><circle cx="30" cy="-38" r="3.5"/></g>
+    <g class="dots" fill="#f0a020"><circle cx="-8" cy="-72" r="3.2"/><circle cx="0" cy="-72" r="3.2"/><circle cx="8" cy="-72" r="3.2"/></g>
+    <g class="tick"><circle cx="14" cy="-62" r="7.5" fill="#1f9d55"/><path d="M10.5 -62 l2.5 2.8 4.5 -5.2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <text class="bub" x="-2" y="-70"></text>
+    <text class="tag" y="17">${esc(r.tag)}</text></g></g>`;
+  const hallDecor = [[20, 305], [680, 305], [1350, 600], [20, 615], [660, 615], [1320, 20]].map(([px, py]) => plant(px, py)).join("") + ibox(1080, 268, 26, 22, 44, "#dbeafe") + ibox(1084, 272, 18, 14, 14, "#60a5fa", 44) + ibox(300, 578, 90, 22, 14, C.wood);
+  const order = ROOMS.map((r, i) => [r, i]).sort((a, b) => (a[0].z[0] + a[0].z[1]) - (b[0].z[0] + b[0].z[1]));   // far rooms first
+  const areas = [...order.map(([r, i]) => [r.z[0] + r.z[1], zone(r, i)]), [lx + ly, lounge], [GAME[0] + GAME[1], gameRoom], [NAP[0] + NAP[1], napRoom], [SMOKE[0] + SMOKE[1], smokeRoom]];
+  const rooms = areas.sort((a, b) => a[0] - b[0]).map((a) => a[1]).join("");
+  $("#office").innerHTML = `<div class="office-wrap"><div class="office-banner" id="officeBanner"></div>
+    <div class="office-scroll"><svg id="officeMap" class="noanim" viewBox="0 0 1860 1050" role="img" aria-label="The office: each department's room and its agent">
+      ${shell}${rooms}<g pointer-events="none">${hallDecor}${ROOMS.map((r, i) => sign(...r.z, `${r.from != null ? `${i - 3}. ` : ""}${r.name}`, r.color)).join("")}${sign(lx, ly, lw, lh, "Coffee lounge", "#2f8a4d")}${sign(...GAME, "Game room", "#6d28d9")}${sign(...NAP, "Nap room", "#0369a1")}${sign(...SMOKE, "Smoking area", "#475569")}</g><text id="pkg" x="-12" y="8" opacity="0">🎬</text>${ROOMS.map(agent).join("")}
+    </svg></div><div class="room-chips" id="roomChips"></div></div>`;
+  if (!officeBuilt) ROOMS.filter((r) => r.from != null).forEach((r, i) => { doing[r.id] = null; if (i % 4 !== 3) pickAct(r.id, false); });
+  for (const k in agentAt) delete agentAt[k];
+  officeBuilt = true; officeKey = "";
+  setTimeout(() => $("#officeMap") && $("#officeMap").classList.remove("noanim"), 80);
+}
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (officeBuilt && state) { buildOffice(); renderOffice(state); } });
+const doorOf = (z) => [z[0] + z[2] / 2, z[1] + z[3] + 32];   // just outside a room's door, in the hallway
+// The way from one room's door to another's: along the hallway, and down the side corridor if they are on different rows.
+function route(zFrom, zTo) {
+  const a = doorOf(zFrom), b = doorOf(zTo);
+  return a[1] === b[1] ? [a, b] : [a, [HALL_X, a[1]], [HALL_X, b[1]], b];
+}
+function moveAgent(id, x, y, zone, act) {   // zone: the room (z) the target is in; act: what it does there (ACTS entry) or null
+  const at = agentAt[id];
+  if (at && at.x === x && at.y === y) return;
+  const el = $(`#ag-${id}`); if (!el) return;
+  const path = at && at.zone !== zone ? [...route(at.zone, zone), [x, y]] : [[x, y]];
+  agentAt[id] = { x, y, zone };
+  clearTimeout(el._w); el.classList.remove(...ACT_CLS);
+  const still = !at || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let from = at ? [at.x, at.y] : [x, y];
+  const step = () => {
+    const p = path.shift();
+    if (!p) { el.classList.remove("walking"); if (act) { el.querySelector(".bub").textContent = act.bub; el.classList.add(act.cls); } return; }
+    const secs = still ? 0 : Math.max(0.35, Math.hypot(p[0] - from[0], p[1] - from[1]) / 170);
+    const [px, py] = ISO(p[0], p[1]);
+    el.style.transitionDuration = `${secs}s`; el.style.transform = `translate(${px.toFixed(0)}px, ${py.toFixed(0)}px)`;
+    el.classList.toggle("walking", !still); from = p;
+    el._w = setTimeout(step, secs * 1000);
+  };
+  step();
+}
+function renderOffice(s) {
+  if (!officeBuilt) buildOffice();
+  const st = ROOMS.map((r) => roomStatus(r, s));
+  const job = (s.progress && s.progress.running) ? s.progress : (s.test && s.test.running) ? s.test : null;
+  let pkgAt = null;
+  ROOMS.forEach((r, i) => {
+    const cls = st[i].cls, [sx, sy] = seat(r);
+    $(`#zn-${r.id}`).setAttribute("class", `zone ${cls === "busy" || cls === "bad" ? cls : ""} ${roomSel === r.id ? "sel" : ""}`);
+    const tag = $(`#ag-${r.id} .tag`), nm = r.id === "ceo" ? "You (CEO)" : whoOf(r, s); if (tag.textContent !== nm) tag.textContent = nm;
+    $(`#ag-${r.id}`).classList.toggle("busy", cls === "busy"); $(`#ag-${r.id}`).classList.toggle("done", cls === "done");
+    let pos = [sx, sy], zn = r.z, act = null;
+    if (r.from != null) {
+      if (job && cls === "done" && !doing[r.id]) pickAct(r.id, false);   // finished its part: go and take a break
+      const d = (job ? cls === "done" : true) ? doing[r.id] : null;
+      if (d) { act = ACTS[d.act]; pos = act.spots[d.slot]; zn = act.zone; }
+      if (cls === "busy") { const [dx, dy] = desk(r); pkgAt = ISO(dx + 20, dy + 14, 26); }
+    }
+    moveAgent(r.id, pos[0], pos[1], zn, act);
+  });
+  const pkg = $("#pkg");
+  if (pkgAt) { pkg.style.transform = `translate(${pkgAt[0]}px, ${pkgAt[1]}px)`; pkg.setAttribute("opacity", "1"); } else pkg.setAttribute("opacity", "0");
+  const key = JSON.stringify([st, roomSel, job && [job.stage, job.topic], s.next && s.next.start, s.setup.staff]);
+  if (key !== officeKey) {
+    officeKey = key;
+    const busy = ROOMS.find((r, i) => st[i].cls === "busy" && r.from != null);
+    $("#officeBanner").innerHTML = `${job ? `<span>🎬 <b>${esc(busy ? `${whoOf(busy, s)} in ${busy.name}` : "Working")}</b>: ${esc(job.stage || "")}${job.topic ? ` · ${esc(job.topic)}` : ""}</span>`
+      : `<span><b>The office is quiet.</b> ${s.next ? `Next video starts ${until(s.next.start)}.` : "No video is scheduled."}</span>`}
+      <span class="legend"><span><i style="background:var(--amber)"></i>Working at the desk</span><span><i style="background:var(--green)"></i>Free: chatting, napping, gaming, watching videos, smoking</span><span>🎬 The video</span></span>`;
+    $("#roomChips").innerHTML = ROOMS.map((r, i) => `<button data-room="${r.id}" class="${st[i].cls} ${roomSel === r.id ? "sel" : ""}"><i style="background:${r.color}"></i>${esc(r.name)}${r.id === "ceo" ? "" : ` · ${esc(whoOf(r, s))}`} <span>${esc(st[i].text)}</span></button>`).join("");
+    const r = ROOMS.find((x) => x.id === roomSel);
+    $("#roomHead").innerHTML = r ? `<div><h3>${esc(r.name)}</h3><div class="about">${r.id === "ceo" ? "" : `<b style="color:var(--ink)">${esc(whoOf(r, s))}</b>, ${esc(r.tag)}. `}${esc(r.about)}</div></div><button data-room="floor">◀ Whole office</button>` : "";
+    $("#roomHead").hidden = !r;
+  }
+  renderDept(s); renderRnd(s);
+}
+// Agents with no work keep changing what they do: chat, nap, play, watch videos, smoke, or wander back to the desk.
+setInterval(() => {
+  if (!state || document.hidden || !officeBuilt) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const job = (state.progress && state.progress.running) ? state.progress : (state.test && state.test.running) ? state.test : null;
+  const free = ROOMS.filter((r) => r.from != null && (!job || Number(job.percent || 0) >= r.to)).map((r) => r.id);
+  if (!free.length) return;
+  pickAct(free[Math.floor(Math.random() * free.length)], !job); renderOffice(state);
+}, 4500);
+function roomStatus(r, s) {
+  const p = s.progress && s.progress.running ? s.progress : s.test && s.test.running ? { ...s.test, isTest: true } : null;
+  const W = s.weekly || { weeks: [] };
+  if (r.from != null) {
+    const pct = p ? Number(p.percent || 0) : -1;
+    if (p && pct >= r.from && pct < r.to) return { cls: "busy", text: `${p.stage || "Working"}${p.isTest ? " (test video)" : ""}` };
+    if (p && pct >= r.to) return { cls: "done", text: "✓ Done for this video" };
+    if (p) return { cls: "", text: "Waiting for its turn" };
+    if (r.id === "publishing") { const n = (s.slots || []).filter((x) => x.status === "posted" || x.status === "scheduled").length; return { cls: "", text: `${n} of ${(s.slots || []).length} posted today` }; }
+    return { cls: "", text: s.next ? `Next job ${until(s.next.start)}` : "No job scheduled" };
+  }
+  if (r.id === "ceo") {
+    const w = W.weeks.find((x) => x.review);
+    return w ? { cls: "ready", text: `Weekly report ready: ${fmtWeek(w)}` } : { cls: "", text: "The first weekly report arrives on Monday" };
+  }
+  if (r.id === "rnd") {
+    const d = s.rnd || { ideas: [] };
+    return d.running ? { cls: "busy", text: "Scouting what is popular" } : { cls: "", text: d.updated ? `${d.ideas.length} ideas waiting · scouted ${dayLabel(d.updated)}` : "Has not scouted yet" };
+  }
+  if (r.id === "qa") {
+    if (W.writing) return { cls: "busy", text: "Writing the weekly review" };
+    const u = s.performance && s.performance.updated;
+    return { cls: "", text: u ? `TikTok numbers read ${dayLabel(u)}` : "No TikTok numbers yet" };
+  }
+  const h = s.health || {}, off = [[h.schedule, "the daily schedule is off"], [h.awake, "keep-awake is off"], [h.tiktok_profile, "the TikTok login is missing"]].filter(([ok]) => ok === false).map(([, t]) => t);
+  return off.length ? { cls: "bad", text: `Problem: ${off.join(", ")}` } : { cls: "", text: "All systems on" };
+}
+const fmtWeek = (w) => { const d = (x) => new Date(`${x}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" }); return `${d(w.week)} – ${d(w.end)}`; };
+
+// ---------- R&D room: what is popular, the formula sheet, the idea backlog ----------
+let rndKey = "";
+function renderRnd(s) {
+  const d = s.rnd, el = $("#rnd"); if (!el) return;
+  if (!d) { el.innerHTML = `<div class="card sub" style="margin-top:12px">No R&D data yet.</div>`; return; }
+  const key = JSON.stringify(d); if (key === rndKey) return; rndKey = key;
+  const canRun = typeof CAN_WRITE !== "undefined" && CAN_WRITE;
+  const link = (t) => t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title)}</a>` : esc(t.title);
+  el.innerHTML = `<div class="card" style="margin-top:12px">
+      <div class="${d.running ? "good" : ""}">${d.running ? `${esc(whoOf(ROOMS.find((x) => x.id === "rnd"), s))} is scouting what is popular right now (a few minutes)…` : d.updated ? `Last scouted ${dayLabel(d.updated)}.` : "R&D has not scouted yet."}
+        ${d.ideas.length} ideas are waiting for Research${d.used ? `, and ${d.used} video${d.used === 1 ? " was" : "s were"} made from R&D ideas` : ""}.</div>
+      <div class="meta">R&D searches the web for popular short "What if" and science videos, writes down the formula behind them, and proposes new ideas for our channel. It copies the formula, never a title, script or art. Every idea still goes through Script Writing and Compliance.</div>
+      ${canRun ? `<div class="row" style="margin-top:12px"><button class="primary" data-rnd-run ${d.running ? "disabled" : ""}>${d.running ? "Scouting…" : "Scout now"}</button></div>` : ""}
+    </div>
+    <div class="dept-cols">
+      <div class="card"><h3>💡 Idea backlog</h3><div class="feed">${d.ideas.map((i) => `<div>${kindBadge(i.kind)} <b>${esc(i.topic)}</b><time>${esc(i.why)}${i.formula ? ` · Formula: ${esc(i.formula)}` : ""}</time></div>`).join("") || `<span class="sub">No ideas waiting.</span>`}</div></div>
+      <div class="card"><h3>🧪 Formula sheet</h3><div class="feed">${d.formulas.map((f) => `<div><span class="badge made">${esc(f.use_for)}</span> <b>${esc(f.name)}</b><div>${esc(f.how)}</div></div>`).join("") || `<span class="sub">No formulas yet.</span>`}</div>
+        <div class="meta">Research gets the title and hook patterns; Script Writing gets all of them.</div></div>
+      <div class="card"><h3>🔥 Popular right now</h3><div class="feed">${d.trends.map((t) => `<div><b>${link(t)}</b><time>${esc(t.where)}${t.views ? ` · ${esc(t.views)} views` : ""}</time>${esc(t.takeaway)}</div>`).join("") || `<span class="sub">Nothing scouted yet.</span>`}</div></div>
+    </div>`;
+}
+function renderDept(s) {
+  const r = ROOMS.find((x) => x.id === roomSel);
+  const el = r && r.from != null ? $(r.id === "publishing" ? "#pubInfo" : "#dept") : null;
+  if (!el) return;
+  const W = s.weekly || { weeks: [] }, act = W.weeks.find((w) => w.week === W.active && w.review);
+  const orders = act ? act.review.improve.filter((x) => x.step === r.step || (!x.step && r.step)).map((x) => x.change) : [];
+  if (act && act.review.mix && r.id === "publishing") orders.push(`Post mix this week: ${act.review.mix.map((k, i) => `${(s.setup.times || [])[i] || ""} ${k}`).join(", ")}`);
+  if (act && r.id === "research" && act.review.ideas && act.review.ideas.length) orders.push(`Ideas to try: ${act.review.ideas.join(" · ")}`);
+  const feed = (s.log || []).filter((l) => r.log.test(l.text)).slice(-10).reverse();
+  const vids = (s.videos || []).filter((v) => v.status !== "test" && v.status !== "skipped");
+  const extra = r.id === "research" ? ["Latest questions", vids.slice(0, 8).map((v) => `<div>${kindBadge(v.kind)} ${esc(v.topic)}</div>`).join("") || "–"]
+    : r.id === "script" && vids[0] ? ["Latest script", `<div><b>${esc(vids[0].topic)}</b></div><div>${esc(vids[0].script)}</div>`]
+    : r.id === "voice" ? ["Voice", `<div>${esc(s.setup.voice)}</div><div>Target length ${esc(s.setup.length)}, ${esc(s.setup.scenes)} scenes</div>`]
+    : r.id === "animation" && s.stats.avg_build != null ? ["Speed", `<div>A video takes ${esc(s.stats.avg_build)} minutes to make on average, most of it in this room and Quality Control.</div>`]
+    : null;
+  const key = JSON.stringify([r.id, orders, feed, extra]);
+  if (key === deptKey) return;
+  deptKey = key;
+  const status = roomStatus(r, s);
+  el.innerHTML = `<div class="dept-cols">
+    <div class="card"><h3>${esc(whoOf(r, s))} right now</h3><div class="${status.cls === "busy" ? "good" : ""}">${esc(status.text)}</div>
+      <h3 style="margin-top:16px">Orders from the weekly report</h3>
+      ${orders.length ? `<ul class="perf-notes">${orders.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div class="meta">From the review of ${fmtWeek(act)}, applied automatically.</div>`
+        : `<div class="sub">${r.step ? "No changes for this team from the latest report." : "This team follows fixed rules; the weekly report doesn't change them."}</div>`}</div>
+    <div class="card"><h3>Latest work</h3><div class="feed">${feed.map((l) => `<div class="${esc(l.level)}"><time>${esc(l.time.slice(5))}</time>${esc(l.text)}</div>`).join("") || `<span class="sub">Nothing in the recent activity log.</span>`}</div></div>
+    ${extra ? `<div class="card"><h3>${extra[0]}</h3><div class="feed">${extra[1]}</div></div>` : ""}
+  </div>`;
+}
+function showRoom(id) {
+  roomSel = ROOMS.some((r) => r.id === id) ? id : "floor";
+  const panel = PANEL[roomSel] || "dept";
+  document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== panel; });
+  try { localStorage.setItem("tracker.room", roomSel); } catch (e) {}
+  deptKey = "";
+  if (state) renderOffice(state);
+}
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("[data-room]"); if (!t) return;
+  const id = t.dataset.room === roomSel ? "floor" : t.dataset.room;   // clicking the open room closes it
+  showRoom(id);
+  if (id !== "floor") $("#roomHead").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+showRoom((() => { try { return localStorage.getItem("tracker.room") || "floor"; } catch (e) { return "floor"; } })());
 </script>
 </body>
 </html>
