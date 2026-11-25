@@ -243,18 +243,19 @@ table.perf a { color: inherit; }
     <div data-panel="publishing" hidden>
       <div id="pubInfo"></div>
       <h2>Totals</h2><div class="stats" id="stats"></div>
-      <h2>Video library</h2>
+    <div class="card sub" style="margin-top:12px">Every video the company has made is kept in the <button data-room="ops">Server Room</button></div>
+    </div>
+    <div data-panel="rnd" hidden><div id="rnd"></div></div>
+  <div data-panel="qa" hidden><h2>How videos are doing on TikTok</h2><div id="perf"></div></div>
+    <div data-panel="ceo" hidden><div id="weekly" style="margin-top:14px"></div></div>
+    <div data-panel="ops" hidden>
+      <h2>Every video we have made <span id="libCount"></span></h2>
       <div class="filters">
         <button data-filter="all" class="on">All</button><button data-filter="posted">Posted</button>
         <button data-filter="scheduled">Scheduled</button><button data-filter="todo">Not on YouTube yet</button><button data-filter="failed">Problems</button>
         <button data-filter="test">Tests</button>
       </div>
       <div id="videos"></div>
-    </div>
-    <div data-panel="rnd" hidden><div id="rnd"></div></div>
-  <div data-panel="qa" hidden><h2>How videos are doing on TikTok</h2><div id="perf"></div></div>
-    <div data-panel="ceo" hidden><div id="weekly" style="margin-top:14px"></div></div>
-    <div data-panel="ops" hidden>
       <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
       <h2>Activity log</h2><div class="card"><div class="log" id="log"></div></div>
     </div>
@@ -377,14 +378,17 @@ function renderStats() {
   const t = state.stats, items = [[t.posted, "posted in total"], [t.posted_week, "posted, last 7 days"], [t.scheduled, "scheduled, waiting"], [t.failed_week, "failed, last 7 days"]];
   $("#stats").innerHTML = items.map(([b, l]) => `<div class="card stat"><b>${esc(b)}</b><span>${l}</span></div>`).join("");
 }
+const LIB_ROWS = 12;
+let libAll = false;
+document.addEventListener("click", (ev) => { if (ev.target.closest("[data-lib-all]")) { libAll = !libAll; renderVideos(true); } });
 function renderVideos(force) {
   const list = state.videos.filter((v) => filter === "all" ? true : filter === "posted" ? v.status === "posted" : filter === "scheduled" ? v.status === "scheduled"
     : filter === "todo" ? v.status !== "skipped" && v.status !== "test" && !v.marks.youtube : filter === "test" ? v.status === "test" : v.status === "failed" || v.status === "skipped");
-  const k = filter + JSON.stringify(list);
+  const k = filter + libAll + JSON.stringify(list);
   if (k === videosKey && !force) return;
   videosKey = k; texts = {};
   const statusLabel = { posted: "Posted to TikTok", scheduled: "Scheduled in TikTok", failed: "TikTok post failed", made: "Made, not posted", test: "Test, not posted" };
-  $("#videos").innerHTML = list.map((v, i) => {
+  $("#videos").innerHTML = (libAll ? list : list.slice(0, LIB_ROWS)).map((v, i) => {
     if (v.status === "skipped") return `<div class="card small-row"><span class="badge">Skipped</span> ${esc(dayLabel(v.created))} · ${esc(v.topic)}<br>${esc(v.detail)}</div>`;
     texts[i] = { title: v.title, description: v.description, tags: v.tags, caption: v.caption, file: v.file };
     const dis = v.file ? "" : "disabled", marks = ["youtube", "instagram", "facebook"].filter((p) => v.marks[p]).map((p) => ({ youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" }[p]));
@@ -399,7 +403,8 @@ function renderVideos(force) {
         <button data-copy="tags" data-i="${i}">Copy tags</button><button data-copy="caption" data-i="${i}">Copy caption</button></div>
       <div class="also">${marks.length ? `Also posted to: ${marks.join(", ")}` : "Not ticked as posted anywhere else yet"}</div>
       <details><summary>Description and narration</summary><p>${esc(v.description)}</p><p>${esc(v.script)}</p></details></div></div>`;
-  }).join("") || `<div class="card small-row">No videos here yet.</div>`;
+  }).join("") + (list.length > LIB_ROWS ? `<div class="row" style="margin:12px 0"><button data-lib-all>${libAll ? `Show the newest ${LIB_ROWS} only` : `Show all ${list.length} videos`}</button></div>` : "")
+    || `<div class="card small-row">No videos here yet.</div>`;
   document.querySelectorAll("[data-thumb]").forEach((el) => thumbs.observe(el));
 }
 const thumbs = new IntersectionObserver((items) => items.forEach(async (it) => {
@@ -570,14 +575,14 @@ const ROOMS = [
   { id: "ceo", who: "You", name: "CEO Office", tag: "CEO (you)", color: "#c9a227", z: [40, 40, 280, 220], about: "Your room. The weekly report: what worked, what didn't, and the changes the teams apply next week." },
   { id: "rnd", who: "Dexter", name: "R&D Lab", tag: "R&D scout", color: "#db2777", z: [350, 40, 250, 220], about: "Scouts what is popular in short videos, works out the formula behind it, and proposes new ideas for Research. Copies the formula, never the content." },
   { id: "qa", who: "Ada", name: "Analytics (QA)", tag: "Analyst", color: "#64748b", z: [630, 40, 240, 220], about: "Reads every video's numbers from TikTok Studio once a day and writes the weekly review for the CEO." },
-  { id: "ops", who: "Otto", name: "Operations", tag: "Operations", color: "#7c7568", z: [900, 40, 220, 220], about: "Keeps the schedule, the Mac and the TikTok login running, and keeps the activity log." },
+  { id: "ops", who: "Otto", name: "Server Room", tag: "Operations", color: "#7c7568", z: [900, 40, 220, 220], about: "Stores every video the company has made, and keeps the schedule, the Mac and the TikTok login running." },
   { id: "research", who: "Riley", name: "Research", tag: "Researcher", color: "#2f6fde", z: [40, 350, 295, 220], from: 0, to: 8, step: "topic", log: /premise|topic prompt|video kind/i, about: "Picks each video's \"What if\" question, leaning toward what viewers watched longest." },
   { id: "script", who: "Sam", name: "Script Writing", tag: "Writer", color: "#d98a00", z: [365, 350, 295, 220], from: 8, to: 14, step: "script", log: /story|rewrit|voiceover length|still \d|re-voicing/i, about: "Writes the 8-scene narration and rewrites it until the video is 61 to 70 seconds." },
   { id: "compliance", who: "Casey", name: "Compliance", tag: "Reviewer", color: "#1f9d55", z: [690, 350, 295, 220], from: 14, to: 20, log: /safety/i, about: "An independent safety review of every script and caption before anything is made." },
   { id: "voice", who: "Vera", name: "Voice Studio", tag: "Voice artist", color: "#8b5cf6", z: [1015, 350, 285, 220], from: 20, to: 28, log: /voiceover/i, about: "Records the narration, times the subtitles, and adds the countdown ticks and boom." },
   { id: "animation", who: "Andy", name: "Animation Studio", tag: "Animator", color: "#e0262e", z: [40, 660, 400, 190], from: 28, to: 60, step: "animation", log: /animation/i, about: "Draws the video in code: every scene, the stickman's acting, the camera." },
   { id: "qc", who: "Quinn", name: "Quality Control", tag: "QC inspector", color: "#0e9f9a", z: [470, 660, 380, 190], from: 60, to: 85, log: /visual review|review notes|unresolved|compile/i, about: "Compiles and test-renders the animation, looks at the frames, and sends it back for fixes (up to 5 rounds)." },
-  { id: "publishing", who: "Parker", name: "Publishing", tag: "Publisher", color: "#e8590c", z: [880, 660, 420, 190], from: 85, to: 101, log: /tiktok posted|video ready|built in|copied for|scheduled|post failed|waiting until/i, about: "Renders the final video, posts it to TikTok at its time, and keeps the library." },
+  { id: "publishing", who: "Parker", name: "Publishing", tag: "Publisher", color: "#e8590c", z: [880, 660, 420, 190], from: 85, to: 101, log: /tiktok posted|video ready|built in|copied for|scheduled|post failed|waiting until/i, about: "Renders the final video and posts it to TikTok at its time. The finished videos are stored in the Server Room." },
 ];
 // Each department's people, lead first. [staff] in settings.toml overrides them: a list of names (the number of
 // names is the size of the team), or a single name to rename only the lead.
@@ -797,6 +802,7 @@ function renderOffice(s) {
     $("#roomHead").hidden = !r;
   }
   renderDept(s); renderRnd(s);
+  const lc = $("#libCount"); if (lc) lc.textContent = `(${made(s)})`;
 }
 // Most people stay at their desks. A few at a time go on a break (never two from one team, never from the team that
 // has the video), then come back or try something else.
@@ -840,8 +846,9 @@ function roomStatus(r, s) {
     return { cls: "", text: u ? `TikTok numbers read ${dayLabel(u)}` : "No TikTok numbers yet" };
   }
   const h = s.health || {}, off = [[h.schedule, "the daily schedule is off"], [h.awake, "keep-awake is off"], [h.tiktok_profile, "the TikTok login is missing"]].filter(([ok]) => ok === false).map(([, t]) => t);
-  return off.length ? { cls: "bad", text: `Problem: ${off.join(", ")}` } : { cls: "", text: "All systems on" };
+  return off.length ? { cls: "bad", text: `Problem: ${off.join(", ")}` } : { cls: "", text: `${made(s)} videos stored · all systems on` };
 }
+const made = (s) => (s.videos || []).filter((v) => v.status !== "test" && v.status !== "skipped").length;   // videos produced, without tests and rejected ideas
 const fmtWeek = (w) => { const d = (x) => new Date(`${x}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" }); return `${d(w.week)} – ${d(w.end)}`; };
 
 // ---------- R&D room: what is popular, the formula sheet, the idea backlog ----------
