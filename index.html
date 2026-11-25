@@ -152,7 +152,12 @@ table.perf a { color: inherit; }
 #officeMap .zname { font-size: 18px; font-weight: 800; fill: #fff; }
 #office { width: min(1500px, 100vw - 32px); margin-left: 50%; transform: translateX(-50%); }
 #officeMap .tag { font-size: 11.5px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; text-anchor: middle; }
-#officeMap .agent { transition: transform 2.4s linear; cursor: pointer; }
+#officeMap .agent { transition: transform 2.4s linear, opacity .6s linear; cursor: pointer; }
+#officeMap .agent.act-home { opacity: 0; pointer-events: none; }
+#officeMap .nightshade { fill: #070b1f; opacity: 0; transition: opacity 2.5s ease; pointer-events: none; }
+#officeMap.night .nightshade { opacity: .66; }
+#officeMap .moon { opacity: 0; transition: opacity 2.5s ease; font-size: 46px; }
+#officeMap.night .moon { opacity: 1; }
 #officeMap .lrug { opacity: .3; }
 #officeMap.noanim .agent, #officeMap.noanim #pkg { transition: none; }
 #officeMap #pkg { transition: transform 1.8s ease-in-out, opacity .4s; font-size: 24px; }
@@ -164,7 +169,7 @@ table.perf a { color: inherit; }
 @keyframes puff { 0% { opacity: .75; transform: translate(0, 0) scale(.5); } 100% { opacity: 0; transform: translate(7px, -24px) scale(1.7); } }
 #officeMap .act-nap .pose { transform: translate(2px, -11px) rotate(-63.4deg); }
 #officeMap .act-nap .shut { display: inline; } #officeMap .act-nap .eyes, #officeMap .act-nap .shadow { display: none; }
-#officeMap .act-chat .hd { animation: ag-bob .7s ease-in-out infinite; }
+#officeMap .act-chat .hd, #officeMap .act-deliver .hd { animation: ag-bob .7s ease-in-out infinite; }
 #officeMap .act-game .arm1 { animation: ag-type .26s ease-in-out infinite; } #officeMap .act-game .arm2 { animation: ag-type .26s ease-in-out .13s infinite; }
 #officeMap .act-game .hd { animation: ag-bob .52s ease-in-out infinite; }
 #officeMap .act-video .hd { animation: ag-bob 1.7s ease-in-out infinite; }
@@ -247,7 +252,7 @@ table.perf a { color: inherit; }
     </div>
     <div data-panel="rnd" hidden><div id="rnd"></div></div>
   <div data-panel="qa" hidden><h2>How videos are doing on TikTok</h2><div id="perf"></div></div>
-    <div data-panel="ceo" hidden><div id="weekly" style="margin-top:14px"></div></div>
+    <div data-panel="ceo" hidden><div id="ordersBox"></div><h2>Weekly report</h2><div id="weekly"></div></div>
     <div data-panel="ops" hidden>
       <h2>Every video we have made <span id="libCount"></span></h2>
       <div class="filters">
@@ -590,7 +595,7 @@ const TEAMS = { ceo: ["You"], rnd: ["Dexter", "Nova"], qa: ["Ada", "Max"], ops: 
   compliance: ["Casey", "Cora", "Carl"], voice: ["Vera", "Vince", "Val"], animation: ["Andy", "Aiko", "Abel"], qc: ["Quinn", "Mina", "Theo"], publishing: ["Parker", "Pia", "Paul"] };
 const teamOf = (r, s) => {
   const v = s && s.setup && s.setup.staff && s.setup.staff[r.id];
-  if (r.id === "ceo") return [String((Array.isArray(v) ? v[0] : v) || "You")];   // the CEO sits alone
+  if (r.id === "ceo") return [String((Array.isArray(v) ? v[0] : v) || "You"), "Claude"];   // the CEO and the assistant
   const t = Array.isArray(v) && v.length ? v : v && !Array.isArray(v) ? [v, ...TEAMS[r.id].slice(1)] : TEAMS[r.id];
   return t.slice(0, Math.max(1, Math.floor((r.z[2] - 24) / 86))).map(String);   // as many desks as fit in a row
 };
@@ -608,7 +613,7 @@ const ACTS = {
   nap: { zone: NAP, cls: "act-nap", bub: "💤", spots: [[1538, 388], [1538, 452], [1538, 516]] },
   smoke: { zone: SMOKE, cls: "act-smoke", bub: "🚬", spots: [[1480, 750], [1548, 726], [1604, 780]] },
 };
-const ACT_CLS = Object.values(ACTS).map((a) => a.cls);
+const ACT_CLS = [...Object.values(ACTS).map((a) => a.cls), "act-home", "act-deliver"];
 const doing = {};   // production agent id -> { act, slot } while on a break, or null when at its own desk
 function pickAct(id, deskToo) {
   const taken = new Set(Object.entries(doing).filter(([k, v]) => k !== id && v).map(([, v]) => v.act + v.slot));
@@ -616,6 +621,20 @@ function pickAct(id, deskToo) {
   for (const [act, a] of Object.entries(ACTS)) a.spots.forEach((_, slot) => { if (!taken.has(act + slot) && !(cur && cur.act === act)) opts.push({ act, slot }); });
   if (deskToo && cur) opts.push(null, null, null);   // sometimes wander back to the desk
   doing[id] = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
+}
+// ---------- going home ----------
+// The working day ends when today's last video is posted (or pre-scheduled) and nothing else is running. People then
+// leave through the exit a few at a time; anyone still working stays, and the lights go off once the office is empty.
+// They come back shortly before the first build of the next working day.
+const HOME = [1300, 838, 100, 10], HOME_POS = [1350, 985], HOME_ACT = { cls: "act-home", bub: "" };   // the exit, on the front hallway
+const leaveAt = {}, arriveAt = {};   // staggered: when each person walks out / back in
+let emptySince = 0, lightsOff = false;
+function afterHours(s) {
+  const mins = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const now = mins((s.now || "").slice(11, 16) || "12:00"), times = (s.setup.times || []).map(mins);
+  const pending = (s.slots || []).some((x) => x.status === "upcoming" || x.status === "running");   // videos still to make today
+  const opens = times.length ? Math.min(...times) - Number(s.setup.prepare_minutes || 0) - 15 : 0;
+  return !(pending && now >= opens);
 }
 const HALL_X = 1350;   // the corridor down the right side that joins the hallways in front of each row
 let roomSel = "floor", officeKey = "", deptKey = "", officeBuilt = false;
@@ -666,7 +685,7 @@ function buildOffice(s) {
   const shelf = (px, py, w, hh) => `${ibox(px, py, w, 14, hh, C.wood)}${[0.36, 0.68].map((k) => { const a = ISO(px, py + 14, hh * k), b = ISO(px + w, py + 14, hh * k); return `<path d="M${a} L${b}" stroke="${shade(C.wood, 0.6)}" stroke-width="2"/>`; }).join("")}`;
   // extra furniture, different in every room (kept clear of the desk and the way to the door)
   const more = (id, x, y, w, h) => ({
-    ceo: () => `${sofa(x + w - 112, y + 10, 84, "#7c5c3b")}${ibox(x + w - 98, y + 54, 52, 26, 12, C.wood)}${lamp(x + 20, y + h - 40)}`,
+    ceo: () => `${sofa(x + w - 112, y + 10, 84, "#7c5c3b")}${lamp(x + 20, y + h - 40)}`,
     rnd: () => `${ibox(x + 128, y + 8, 76, 24, 26, "#e5e7eb")}${ibox(x + 138, y + 14, 8, 8, 12, "#22d3ee", 26)}${ibox(x + 156, y + 14, 8, 8, 18, "#f472b6", 26)}${ibox(x + 174, y + 14, 8, 8, 10, "#a3e635", 26)}${ibox(x + 158, y + 46, 16, 16, 16, "#6b7280")}`,
     qa: () => `${cabinet(x + 110, y + 8)}${cabinet(x + 144, y + 8)}${lamp(x + 18, y + h - 40)}${ibox(x + w - 60, y + h - 70, 34, 26, 20, C.wood)}`,
     ops: () => `${ibox(x + w - 74, y + 12, 46, 28, 30, "#d1d5db")}${ibox(x + w - 66, y + 16, 30, 18, 8, "#374151", 30)}${cabinet(x + 14, y + h - 60, "#f59e0b")}`,
@@ -693,13 +712,14 @@ function buildOffice(s) {
     ${ibox(lx + 126, ly + 10, 48, 26, 30, "#4b5563")}${ibox(lx + 132, ly + 14, 18, 16, 20, "#15181d", 30)}${ibox(lx + 158, ly + 16, 8, 8, 8, "#ffffff", 30)}${ibox(lx + 178, ly + 8, 26, 26, 60, "#dc2626")}${ibox(lx + 204, ly + 14, 1, 14, 30, "#fecaca", 20)}
     ${plant(lx + lw - 16, ly + 60)}${front(lx, ly, lw, lh)}</g>`;
   const zone = (r, i) => {
-    const [x, y, w, h] = r.z, big = r.id === "ceo";
+    const [x, y, w, h] = r.z;
     const furniture = (teams[r.id] || [0]).map((_, k) => {
+      const big = r.id === "ceo" && k === 0;   // the CEO's own desk
       const [dx, dy] = desk(r, k), [sx, sy] = seat(r, k);
       const screen = ipts([[dx + 40, dy + 9, 44], [dx + 66, dy + 9, 44], [dx + 66, dy + 9, 27], [dx + 40, dy + 9, 27]]);
       return `${ibox(dx, dy, big ? 96 : 74, 28, 4, C.wood, 20)}${ibox(dx + 3, dy + 3, 5, 22, 20, shade(C.wood, 0.8))}${ibox(dx + (big ? 88 : 66), dy + 3, 5, 22, 20, shade(C.wood, 0.8))}
       ${big ? `<polygon points="${ipts([[dx + 44, dy + 6, 24.5], [dx + 66, dy + 6, 24.5], [dx + 66, dy + 22, 24.5], [dx + 44, dy + 22, 24.5]])}" fill="#fff" stroke="#15181d" stroke-width="1.5"/>`
-            : `${ibox(dx + 50, dy + 6, 6, 4, 4, "#15181d", 24)}${ibox(dx + 38, dy + 6, 30, 3, 20, "#15181d", 26)}<polygon points="${screen}" fill="${r.color}"/>`}
+            : `${ibox(dx + 50, dy + 6, 6, 4, 4, "#15181d", 24)}${ibox(dx + 38, dy + 6, 30, 3, 20, "#15181d", 26)}<polygon points="${screen}" fill="${r.id === "ceo" ? "#d97757" : r.color}"/>`}
       ${ibox(sx - 10, sy - 8, 20, 18, 12, "#4b5563")}${ibox(sx - 10, sy + 8, 20, 4, 30, "#374151")}`;
     }).join("");
     const extra = r.id === "ceo" ? `${ibox(x + 14, y + 4, 90, 14, 60, C.wood)}${[20, 40].map((z) => { const a = ISO(x + 14, y + 18, z), b = ISO(x + 104, y + 18, z); return `<path d="M${a} L${b}" stroke="${shade(C.wood, 0.6)}" stroke-width="2"/>`; }).join("")}${ibox(x + w - 70, y + h - 50, 50, 30, 14, "#c9a227")}`
@@ -714,11 +734,11 @@ function buildOffice(s) {
       ${carpet(x, y, w, h, r.color, "rug")}${carpet(x, y, w, h, "", "ring")}${glass(x, y, w, h)}${extra}${more(r.id, x, y, w, h)}${furniture}${plant(x + w - 16, y + 16)}
       ${front(x, y, w, h)}</g>`;
   };
-  const agent = (r, k) => `<g class="agent ${k ? "" : "lead"}" id="ag-${aid(r, k)}" data-room="${r.id}"><title>${esc(r.name)}</title>
+  const agent = (r, k, col = r.id === "ceo" && k ? "#d97757" : r.color) => `<g class="agent ${k ? "" : "lead"}" id="ag-${aid(r, k)}" data-room="${r.id}"><title>${esc(r.name)}</title>
     <g transform="scale(1.3)"><ellipse class="shadow" cx="0" cy="1" rx="14" ry="5" fill="#000" opacity=".18"/>
     <g class="pose"><line class="leg1" x1="-5" y1="-16" x2="-6" y2="0" stroke="#15181d" stroke-width="4.5" stroke-linecap="round"/><line class="leg2" x1="5" y1="-16" x2="6" y2="0" stroke="#15181d" stroke-width="4.5" stroke-linecap="round"/>
-    <rect x="-11" y="-41" width="22" height="28" rx="9" fill="${r.color}"/>${r.id === "ceo" ? `<path d="M0 -40 l-3.5 5 3.5 13 3.5 -13z" fill="#e0262e"/>` : ""}
-    <line class="arm1" x1="7" y1="-33" x2="20" y2="-31" stroke="${r.color}" stroke-width="5.5" stroke-linecap="round"/><line class="arm2" x1="5" y1="-28" x2="17" y2="-27" stroke="${r.color}" stroke-width="5.5" stroke-linecap="round"/>
+    <rect x="-11" y="-41" width="22" height="28" rx="9" fill="${col}"/>${r.id === "ceo" && !k ? `<path d="M0 -40 l-3.5 5 3.5 13 3.5 -13z" fill="#e0262e"/>` : ""}
+    <line class="arm1" x1="7" y1="-33" x2="20" y2="-31" stroke="${col}" stroke-width="5.5" stroke-linecap="round"/><line class="arm2" x1="5" y1="-28" x2="17" y2="-27" stroke="${col}" stroke-width="5.5" stroke-linecap="round"/>
     <path class="cig" d="M20 -31 l8 -2" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
     <g class="hd"><circle cx="0" cy="-51" r="11.5" fill="#fff" stroke="#15181d" stroke-width="3"/><g class="eyes"><circle cx="-3" cy="-52" r="1.6" fill="#15181d"/><circle cx="4" cy="-52" r="1.6" fill="#15181d"/></g><path class="shut" d="M-6 -52h4M2 -52h4" stroke="#15181d" stroke-width="1.6" stroke-linecap="round"/></g></g>
     <g class="puffs" fill="#9ca3af"><circle cx="30" cy="-38" r="3.5"/><circle cx="30" cy="-38" r="3.5"/></g>
@@ -727,12 +747,16 @@ function buildOffice(s) {
     <text class="bub" x="-2" y="-70"></text>
     <text class="tag" y="17">${esc(r.tag)}</text></g></g>`;
   const hallDecor = [[20, 305], [680, 305], [1350, 600], [20, 615], [660, 615], [1320, 20]].map(([px, py]) => plant(px, py)).join("") + ibox(1080, 268, 26, 22, 44, "#dbeafe") + ibox(1084, 272, 18, 14, 14, "#60a5fa", 44) + ibox(300, 578, 90, 22, 14, C.wood);
+  const [ex, ey] = ISO(1350, 899, 78);
+  const exitDoor = `${ibox(1306, 884, 88, 14, 2, "#374151")}${ibox(1304, 896, 5, 4, 64, C.trim)}${ibox(1391, 896, 5, 4, 64, C.trim)}${ibox(1304, 896, 92, 4, 6, C.trim, 64)}<rect x="${ex - 26}" y="${ey - 12}" width="52" height="20" rx="4" fill="#15803d"/><text x="${ex}" y="${ey + 3}" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">EXIT</text>`;
+  const [mx, my] = ISO(FW_ - 120, -10, 150);
+  const night = `<polygon class="nightshade" points="${ipts([[-10, FD_, 96], [-10, -10, 96], [FW_, -10, 96], [FW_, 0, -16], [FW_, FD_, -16], [0, FD_, -16]])}"/><text class="moon" x="${mx}" y="${my}">🌙</text>`;
   const order = ROOMS.map((r, i) => [r, i]).sort((a, b) => (a[0].z[0] + a[0].z[1]) - (b[0].z[0] + b[0].z[1]));   // far rooms first
   const areas = [...order.map(([r, i]) => [r.z[0] + r.z[1], zone(r, i)]), [lx + ly, lounge], [GAME[0] + GAME[1], gameRoom], [NAP[0] + NAP[1], napRoom], [SMOKE[0] + SMOKE[1], smokeRoom]];
   const rooms = areas.sort((a, b) => a[0] - b[0]).map((a) => a[1]).join("");
   $("#office").innerHTML = `<div class="office-wrap"><div class="office-banner" id="officeBanner"></div>
     <div class="office-scroll"><svg id="officeMap" class="noanim" viewBox="0 0 1860 1050" role="img" aria-label="The office: each department's room and its agent">
-      ${shell}${rooms}<g pointer-events="none">${hallDecor}${ROOMS.map((r, i) => sign(...r.z, `${r.from != null ? `${i - 3}. ` : ""}${r.name}`, r.color)).join("")}${sign(lx, ly, lw, lh, "Coffee lounge", "#2f8a4d")}${sign(...GAME, "Game room", "#6d28d9")}${sign(...NAP, "Nap room", "#0369a1")}${sign(...SMOKE, "Smoking area", "#475569")}</g><text id="pkg" x="-12" y="8" opacity="0">🎬</text>${ROOMS.map((r) => teams[r.id].map((_, k) => agent(r, k)).join("")).join("")}
+      ${shell}${rooms}<g pointer-events="none">${hallDecor}${exitDoor}${ROOMS.map((r, i) => sign(...r.z, `${r.from != null ? `${i - 3}. ` : ""}${r.name}`, r.color)).join("")}${sign(lx, ly, lw, lh, "Coffee lounge", "#2f8a4d")}${sign(...GAME, "Game room", "#6d28d9")}${sign(...NAP, "Nap room", "#0369a1")}${sign(...SMOKE, "Smoking area", "#475569")}</g><text id="pkg" x="-12" y="8" opacity="0">🎬</text>${ROOMS.map((r) => teams[r.id].map((_, k) => agent(r, k)).join("")).join("")}${night}
     </svg></div><div class="room-chips" id="roomChips"></div></div>`;
   for (const k in doing) delete doing[k];
   ROOMS.filter((r) => r.from != null).sort(() => Math.random() - 0.5).slice(0, 4).forEach((r) => pickAct(aid(r, Math.floor(Math.random() * teams[r.id].length)), false));   // a few start on a break
@@ -772,42 +796,73 @@ function renderOffice(s) {
   const st = ROOMS.map((r) => roomStatus(r, s));
   const job = (s.progress && s.progress.running) ? s.progress : (s.test && s.test.running) ? s.test : null;
   let pkgAt = null;
+  noteNewOrders(s);
+  const closing = afterHours(s), firstDraw = !Object.keys(agentAt).length;
   ROOMS.forEach((r, i) => {
     const cls = st[i].cls;
     $(`#zn-${r.id}`).setAttribute("class", `zone ${cls === "busy" || cls === "bad" ? cls : ""} ${roomSel === r.id ? "sel" : ""}`);
+    const stays = cls === "busy" || (r.from != null && job);   // has work now, or a video on the line will reach it
     teams[r.id].forEach((name, k) => {
-      const id = aid(r, k), el = $(`#ag-${id}`);
-      const tag = el.querySelector(".tag"), nm = r.id === "ceo" ? `${name} (CEO)` : name; if (tag.textContent !== nm) tag.textContent = nm;
-      if (cls === "busy") doing[id] = null;   // the video is in this room: the whole team is at their desks
+      const id = aid(r, k), el = $(`#ag-${id}`), t = Date.now();
+      const tag = el.querySelector(".tag"), nm = r.id === "ceo" && !k ? `${name} (CEO)` : name; if (tag.textContent !== nm) tag.textContent = nm;
+      let home = closing && !stays, errand = null;
+      if (id === CLAUDE && errands.length) {
+        const to = ROOMS.find((x) => x.id === errands[0]);
+        errand = { zone: to.z, pos: [to.z[0] + to.z[2] / 2, to.z[1] + to.z[3] - 22], act: { cls: "act-deliver", bub: "📨" } };
+        home = false; delete leaveAt[id]; delete arriveAt[id];
+        if (el.classList.contains("act-deliver") && agentAt[id] && agentAt[id].zone === to.z) {   // arrived: hand it over, then move on
+          if (!errandAt) errandAt = t; else if (t - errandAt > 2600) { errands.shift(); errandAt = 0; }
+        }
+      }
+      if (home) {   // walk out a few at a time (the CEO leaves last); on a fresh page they are already gone
+        delete arriveAt[id];
+        if (leaveAt[id] == null) leaveAt[id] = firstDraw ? 0 : t + Math.random() * 22000 + (r.id === "ceo" ? 24000 : 0);
+        if (t < leaveAt[id]) home = false;
+      } else {
+        delete leaveAt[id];
+        if (agentAt[id] && agentAt[id].zone === HOME) {   // morning: come back in a few at a time
+          if (arriveAt[id] == null) arriveAt[id] = t + Math.random() * 18000;
+          if (t < arriveAt[id]) home = true;
+        }
+      }
+      if (cls === "busy" || home) doing[id] = null;   // the video is in this room: the whole team is at their desks
       const d = r.from != null ? doing[id] : null;
-      el.classList.toggle("busy", cls === "busy"); el.classList.toggle("done", cls === "done" && k === 0); el.classList.toggle("desk", cls !== "busy" && !d);
+      el.classList.toggle("busy", cls === "busy"); el.classList.toggle("done", cls === "done" && k === 0 && !home); el.classList.toggle("desk", cls !== "busy" && !d && !home && !errand);
       let pos = seat(r, k), zn = r.z, act = null;
-      if (d) { act = ACTS[d.act]; pos = act.spots[d.slot]; zn = act.zone; }
+      if (home) { act = HOME_ACT; pos = HOME_POS; zn = HOME; }
+      else if (errand) { act = errand.act; pos = errand.pos; zn = errand.zone; }
+      else if (d) { act = ACTS[d.act]; pos = act.spots[d.slot]; zn = act.zone; }
       moveAgent(id, pos[0], pos[1], zn, act);
     });
     if (cls === "busy" && r.from != null) { const [dx, dy] = desk(r); pkgAt = ISO(dx + 20, dy + 14, 26); }
   });
+  // lights: off once everyone has had time to walk out, on again as soon as someone is back
+  const empty = Object.values(agentAt).every((a) => a.zone === HOME);
+  emptySince = empty ? (emptySince || (firstDraw ? 1 : Date.now())) : 0;
+  lightsOff = empty && Date.now() - emptySince > 16000;
+  $("#officeMap").classList.toggle("night", lightsOff);
   const pkg = $("#pkg");
   if (pkgAt) { pkg.style.transform = `translate(${pkgAt[0]}px, ${pkgAt[1]}px)`; pkg.setAttribute("opacity", "1"); } else pkg.setAttribute("opacity", "0");
-  const key = JSON.stringify([st, roomSel, job && [job.stage, job.topic], s.next && s.next.start, s.setup.staff]);
+  const key = JSON.stringify([st, roomSel, job && [job.stage, job.topic], s.next && s.next.start, s.setup.staff, closing, empty, lightsOff]);
   if (key !== officeKey) {
     officeKey = key;
     const busy = ROOMS.find((r, i) => st[i].cls === "busy" && r.from != null);
     $("#officeBanner").innerHTML = `${job ? `<span>🎬 <b>${esc(busy ? `${whoOf(busy, s)} in ${busy.name}` : "Working")}</b>: ${esc(job.stage || "")}${job.topic ? ` · ${esc(job.topic)}` : ""}</span>`
-      : `<span><b>The office is quiet.</b> ${s.next ? `Next video starts ${until(s.next.start)}.` : "No video is scheduled."}</span>`}
+      : `<span>${lightsOff ? "🌙 <b>The office is closed.</b> Everyone has gone home and the lights are off." : closing && empty ? "<b>The last person is leaving.</b>" : closing ? "<b>Work is done for today.</b> People are heading home." : "<b>The office is quiet.</b>"} ${s.next ? `Next video starts ${until(s.next.start)}.` : "No video is scheduled."}</span>`}
       <span class="legend"><span><i style="background:var(--amber)"></i>The team working on the video</span><span><i style="background:var(--muted)"></i>Everyone else: at their desks, a few on a break</span><span>🎬 The video</span></span>`;
     $("#roomChips").innerHTML = ROOMS.map((r, i) => `<button data-room="${r.id}" class="${st[i].cls} ${roomSel === r.id ? "sel" : ""}"><i style="background:${r.color}"></i>${esc(r.name)}${r.id === "ceo" ? "" : ` · ${esc(whoOf(r, s))}${teamOf(r, s).length > 1 ? ` +${teamOf(r, s).length - 1}` : ""}`} <span>${esc(st[i].text)}</span></button>`).join("");
     const r = ROOMS.find((x) => x.id === roomSel);
     $("#roomHead").innerHTML = r ? `<div><h3>${esc(r.name)}</h3><div class="about">${r.id === "ceo" ? "" : `<b style="color:var(--ink)">${esc(whoOf(r, s))}</b>, ${esc(r.tag)}${teamOf(r, s).length > 1 ? `, with ${esc(teamOf(r, s).slice(1).join(" and "))}` : ""}. `}${esc(r.about)}</div></div><button data-room="floor">◀ Whole office</button>` : "";
     $("#roomHead").hidden = !r;
   }
-  renderDept(s); renderRnd(s);
+  renderDept(s); renderRnd(s); renderOrders(s);
   const lc = $("#libCount"); if (lc) lc.textContent = `(${made(s)})`;
 }
 // Most people stay at their desks. A few at a time go on a break (never two from one team, never from the team that
 // has the video), then come back or try something else.
 const BREAK_MAX = 6;
 function shuffleBreaks(s) {
+  if (afterHours(s) && !(s.progress && s.progress.running) && !(s.test && s.test.running)) return;   // nobody is in
   const st = ROOMS.map((r) => roomStatus(r, s)), prod = [];
   ROOMS.forEach((r, i) => { if (r.from != null && st[i].cls !== "busy") teams[r.id].forEach((_, k) => prod.push([r, aid(r, k)])); });
   const out = prod.filter(([, id]) => doing[id]), any = (a) => a[Math.floor(Math.random() * a.length)];
@@ -830,7 +885,7 @@ function roomStatus(r, s) {
     if (p && pct >= r.to) return { cls: "done", text: "✓ Done for this video" };
     if (p) return { cls: "", text: "Waiting for its turn" };
     if (r.id === "publishing") { const n = (s.slots || []).filter((x) => x.status === "posted" || x.status === "scheduled").length; return { cls: "", text: `${n} of ${(s.slots || []).length} posted today` }; }
-    return { cls: "", text: s.next ? `Next job ${until(s.next.start)}` : "No job scheduled" };
+    return { cls: "", text: `${afterHours(s) ? "Gone home · " : ""}${s.next ? `next job ${until(s.next.start)}` : "no job scheduled"}`.replace(/^n/, "N") };
   }
   if (r.id === "ceo") {
     const w = W.weeks.find((x) => x.review);
@@ -851,18 +906,54 @@ function roomStatus(r, s) {
 const made = (s) => (s.videos || []).filter((v) => v.status !== "test" && v.status !== "skipped").length;   // videos produced, without tests and rejected ideas
 const fmtWeek = (w) => { const d = (x) => new Date(`${x}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" }); return `${d(w.week)} – ${d(w.end)}`; };
 
+// ---------- Claude, the CEO's assistant: delivers the CEO's feedback to the departments ----------
+const CLAUDE = "ceo-1";   // Claude's agent: the second desk in the CEO Office
+let ordersKey = "", seenOrders = null, errandAt = 0;
+const errands = [];       // rooms Claude still has to walk a new order to
+const deptName = (id) => { const r = ROOMS.find((x) => x.id === id); return r ? r.name : id; };
+const ordersFor = (s, dept) => ((s.orders && s.orders.list) || []).flatMap((o) => o.routes.filter((x) => x.dept === dept).map((x) => x.instruction));
+function noteNewOrders(s) {   // a new order appeared: Claude walks it to each department it is for
+  const list = (s.orders && s.orders.list) || [];
+  if (seenOrders === null) { seenOrders = new Set(list.map((o) => o.id)); return; }
+  for (const o of list) if (!seenOrders.has(o.id)) {
+    seenOrders.add(o.id);
+    for (const d of new Set(o.routes.map((x) => x.dept))) if (d !== "ceo" && ROOMS.some((r) => r.id === d)) errands.push(d);
+  }
+}
+function renderOrders(s) {
+  const el = $("#ordersBox"), o = s.orders; if (!el || !o) return;
+  const key = JSON.stringify(o); if (key === ordersKey) return;
+  const draft = el.querySelector("textarea") ? el.querySelector("textarea").value : "";
+  ordersKey = key;
+  const can = typeof CAN_WRITE !== "undefined" && CAN_WRITE;
+  const item = (x) => `<div><b>“${esc(x.text)}”</b><time>${esc(dayLabel(x.created))}${x.reply ? ` · Claude: ${esc(x.reply)}` : ""}</time>
+    ${x.routes.map((r) => `<div style="margin-top:6px"><span class="badge ${r.auto ? "made" : ""}">${esc(deptName(r.dept))}</span>${r.auto ? "" : ` <span class="sub">not automatic: needs a settings change</span>`} ${esc(r.instruction)}</div>`).join("")}
+    ${can ? `<div class="row" style="margin-top:8px"><button data-order-cancel="${esc(x.id)}">Cancel this order</button></div>` : ""}</div>`;
+  el.innerHTML = `<div class="card" style="margin-top:14px"><h3 style="margin:0 0 6px;font-size:16px">Tell Claude, your assistant</h3>
+      <div class="sub">Write feedback in your own words. Claude works out which departments it is for, gives each one a clear order, and they follow it in every video until you cancel it.</div>
+      ${can ? `<textarea id="orderText" rows="3" maxlength="800" placeholder="For example: I want more videos about space, and make the jokes sillier." style="width:100%;margin-top:10px;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical"></textarea>
+        <div class="row" style="margin-top:8px"><button class="primary" data-order-send ${o.pending ? "disabled" : ""}>${o.pending ? "Claude is delivering…" : "Send to the company"}</button></div>`
+        : `<div class="meta">Orders are given from the tracker on the Mac.</div>`}
+      ${o.pending ? `<div class="meta">Delivering: “${esc(o.pending)}”</div>` : ""}
+      ${o.last_reply ? `<div class="meta">Claude on “${esc(o.last_reply.text)}”: ${esc(o.last_reply.reply)}</div>` : ""}
+    </div>
+    <div class="card" style="margin-top:12px"><h3 style="margin:0 0 10px;font-size:16px">Standing orders (${o.list.length})</h3>
+      <div class="feed">${o.list.map(item).join("") || `<span class="sub">None yet. Everything you send above is kept here until you cancel it.</span>`}</div></div>`;
+  if (draft && el.querySelector("textarea")) el.querySelector("textarea").value = draft;
+}
 // ---------- R&D room: what is popular, the formula sheet, the idea backlog ----------
 let rndKey = "";
 function renderRnd(s) {
   const d = s.rnd, el = $("#rnd"); if (!el) return;
   if (!d) { el.innerHTML = `<div class="card sub" style="margin-top:12px">No R&D data yet.</div>`; return; }
-  const key = JSON.stringify(d); if (key === rndKey) return; rndKey = key;
+  const key = JSON.stringify([d, ordersFor(s, "rnd")]); if (key === rndKey) return; rndKey = key;
   const canRun = typeof CAN_WRITE !== "undefined" && CAN_WRITE;
   const link = (t) => t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title)}</a>` : esc(t.title);
   el.innerHTML = `<div class="card" style="margin-top:12px">
       <div class="${d.running ? "good" : ""}">${d.running ? `${esc(whoOf(ROOMS.find((x) => x.id === "rnd"), s))} is scouting what is popular right now (a few minutes)…` : d.updated ? `Last scouted ${dayLabel(d.updated)}.` : "R&D has not scouted yet."}
         ${d.ideas.length} ideas are waiting for Research${d.used ? `, and ${d.used} video${d.used === 1 ? " was" : "s were"} made from R&D ideas` : ""}.</div>
       <div class="meta">R&D searches the web for popular short "What if" and science videos, writes down the formula behind them, and proposes new ideas for our channel. It copies the formula, never a title, script or art. Every idea still goes through Script Writing and Compliance.</div>
+      ${ordersFor(s, "rnd").length ? `<div style="margin-top:10px"><b>Orders from the CEO:</b> ${ordersFor(s, "rnd").map(esc).join(" · ")}</div>` : ""}
       ${canRun ? `<div class="row" style="margin-top:12px"><button class="primary" data-rnd-run ${d.running ? "disabled" : ""}>${d.running ? "Scouting…" : "Scout now"}</button></div>` : ""}
     </div>
     <div class="dept-cols">
@@ -887,12 +978,14 @@ function renderDept(s) {
     : r.id === "voice" ? ["Voice", `<div>${esc(s.setup.voice)}</div><div>Target length ${esc(s.setup.length)}, ${esc(s.setup.scenes)} scenes</div>`]
     : r.id === "animation" && s.stats.avg_build != null ? ["Speed", `<div>A video takes ${esc(s.stats.avg_build)} minutes to make on average, most of it in this room and Quality Control.</div>`]
     : null;
-  const key = JSON.stringify([r.id, orders, feed, extra]);
+  const ceo = ordersFor(s, r.id);
+  const key = JSON.stringify([r.id, orders, feed, extra, ceo]);
   if (key === deptKey) return;
   deptKey = key;
   const status = roomStatus(r, s);
   el.innerHTML = `<div class="dept-cols">
     <div class="card"><h3>${esc(whoOf(r, s))} right now</h3><div class="${status.cls === "busy" ? "good" : ""}">${esc(status.text)}</div>
+      ${ceo.length ? `<h3 style="margin-top:16px">Orders from the CEO</h3><ul class="perf-notes">${ceo.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div class="meta">Delivered by Claude. Followed in every video until cancelled.</div>` : ""}
       <h3 style="margin-top:16px">Orders from the weekly report</h3>
       ${orders.length ? `<ul class="perf-notes">${orders.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><div class="meta">From the review of ${fmtWeek(act)}, applied automatically.</div>`
         : `<div class="sub">${r.step ? "No changes for this team from the latest report." : "This team follows fixed rules; the weekly report doesn't change them."}</div>`}</div>
