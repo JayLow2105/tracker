@@ -589,8 +589,8 @@ const ROOMS = [
 const TEAMS = { ceo: ["You"], rnd: ["Dexter", "Nova"], qa: ["Ada", "Max"], ops: ["Otto", "Ivy"], research: ["Riley", "Rosa", "Raj"], script: ["Sam", "Sofia", "Seth"],
   compliance: ["Casey", "Cora", "Carl"], voice: ["Vera", "Vince", "Val"], animation: ["Andy", "Aiko", "Abel"], qc: ["Quinn", "Mina", "Theo"], publishing: ["Parker", "Pia", "Paul"] };
 const teamOf = (r, s) => {
-  if (r.id === "ceo") return ["You"];
   const v = s && s.setup && s.setup.staff && s.setup.staff[r.id];
+  if (r.id === "ceo") return [String((Array.isArray(v) ? v[0] : v) || "You")];   // the CEO sits alone
   const t = Array.isArray(v) && v.length ? v : v && !Array.isArray(v) ? [v, ...TEAMS[r.id].slice(1)] : TEAMS[r.id];
   return t.slice(0, Math.max(1, Math.floor((r.z[2] - 24) / 86))).map(String);   // as many desks as fit in a row
 };
@@ -777,7 +777,7 @@ function renderOffice(s) {
     $(`#zn-${r.id}`).setAttribute("class", `zone ${cls === "busy" || cls === "bad" ? cls : ""} ${roomSel === r.id ? "sel" : ""}`);
     teams[r.id].forEach((name, k) => {
       const id = aid(r, k), el = $(`#ag-${id}`);
-      const tag = el.querySelector(".tag"), nm = r.id === "ceo" ? "You (CEO)" : name; if (tag.textContent !== nm) tag.textContent = nm;
+      const tag = el.querySelector(".tag"), nm = r.id === "ceo" ? `${name} (CEO)` : name; if (tag.textContent !== nm) tag.textContent = nm;
       if (cls === "busy") doing[id] = null;   // the video is in this room: the whole team is at their desks
       const d = r.from != null ? doing[id] : null;
       el.classList.toggle("busy", cls === "busy"); el.classList.toggle("done", cls === "done" && k === 0); el.classList.toggle("desk", cls !== "busy" && !d);
