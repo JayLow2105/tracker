@@ -112,6 +112,31 @@ table.perf.grp th:first-child, table.perf.grp td:first-child { min-width: 0; }
 table.perf.grp th, table.perf.grp td { padding: 6px 5px; }
 table.perf a { color: inherit; }
 .good { color: var(--green); font-weight: 700; } .weak { color: var(--red); font-weight: 700; }
+.tabs { display: flex; gap: 6px; margin: 0 0 16px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 12px 9px; color: var(--muted); }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--red); background: none; }
+.weeks { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.weeks button { white-space: nowrap; flex: none; }
+.wk-head h3 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+.wk-verdict { font-size: 17px; font-weight: 650; margin-top: 10px; line-height: 1.4; }
+.wk-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); gap: 10px; margin-top: 12px; }
+.wk-tiles .stat small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.up { color: var(--green); font-weight: 700; } .down { color: var(--red); font-weight: 700; }
+.wk-vids { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.wk-vid { min-width: 0; }
+.wk-vid .rank { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.wk-vid h4 { margin: 4px 0 6px; font-size: 16px; line-height: 1.3; }
+.wk-vid h4 a { color: inherit; }
+.wk-vid .idea { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.wk-vid .idea b { color: var(--ink); font-weight: 600; }
+.wk-vid .nums { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.wk-vid .why { margin-top: 10px; padding: 9px 11px; border-radius: 10px; background: var(--grey-soft); font-size: 13px; }
+.wk-list { margin: 0; padding-left: 20px; line-height: 1.5; }
+.wk-list li + li { margin-top: 8px; }
+.wk-list .why { color: var(--muted); font-size: 13px; display: block; }
+.wk-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.wk-cols > .card { min-width: 0; }
+.wk-cols h3, .wk-card h3 { font-size: 15px; margin: 0 0 10px; }
 </style>
 </head>
 <body>
@@ -134,6 +159,8 @@ table.perf a { color: inherit; }
   </div>
 
   <div id="app" hidden>
+    <nav class="tabs"><button data-tab="main" class="on">Today</button><button data-tab="week">Weekly report</button></nav>
+    <div id="tab-main">
     <div class="card" id="now"></div>
     <div class="card" id="test" hidden style="margin-top:12px"></div>
     <h2>Today</h2><div class="slots" id="slots"></div>
@@ -148,6 +175,8 @@ table.perf a { color: inherit; }
     <div id="videos"></div>
     <h2>Setup</h2><div class="card"><dl id="setup"></dl></div>
     <h2>Activity log</h2><div class="card"><div class="log" id="log"></div></div>
+    </div>
+    <div id="tab-week" hidden><div id="weekly"></div></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -300,7 +329,7 @@ function renderRest() {
   $("#setup").innerHTML = rows.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("");
   $("#log").innerHTML = state.log.map((l) => `<div class="${esc(l.level)}"><time>${esc(l.time.slice(5))}</time> ${esc(l.text)}</div>`).join("") || "No activity yet this month.";
 }
-function render() { renderNow(); renderTest(); renderSlots(); renderStats(); renderPerf(state); renderVideos(); renderRest(); }
+function render() { renderNow(); renderTest(); renderSlots(); renderStats(); renderPerf(state); renderWeek(state); renderVideos(); renderRest(); }
 
 function showSetup(msg) {
   $("#setupCard").hidden = false; $("#repo").value = repo; $("#key").value = key; $("#forget").hidden = !(repo || key);
@@ -352,6 +381,104 @@ document.addEventListener("click", async (ev) => {
 function closeModal() { const m = $("#modal"), v = m.querySelector("video"); v.pause(); v.removeAttribute("src"); v.load(); m.classList.remove("show"); }
 $("#modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") closeModal(); });
 start();
+// ---------- weekly report tab ----------
+let weekSel = null, weekKey = "";
+function showTab(name) {
+  document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  $("#tab-main").hidden = name !== "main"; $("#tab-week").hidden = name !== "week";
+  try { localStorage.setItem("tracker.tab", name); } catch (e) {}
+}
+function renderWeek(s) {
+  const W = s.weekly, el = $("#weekly");
+  if (!W || !W.weeks.length) { el.innerHTML = `<div class="card sub">No videos posted yet.</div>`; return; }
+  if (!weekSel || !W.weeks.some((w) => w.week === weekSel)) weekSel = (W.weeks.find((w) => w.done && w.summary.with_stats) || W.weeks[0]).week;
+  const w = W.weeks.find((x) => x.week === weekSel);
+  const key = JSON.stringify([W.weeks.map((x) => x.week), w, W.writing]);
+  if (key === weekKey) return;   // unchanged: don't redraw (keeps the scroll position)
+  weekKey = key;
+  const day = (d) => new Date(`${d}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" });
+  const wday = (iso) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  const n = (x, d = 0) => x == null ? "–" : Number(x).toFixed(d);
+  const range = (x) => `${day(x.week)} – ${day(x.end)}`;
+  const thisWeek = W.weeks[0].week;
+  const picker = W.weeks.map((x) => `<button data-week="${x.week}" class="${x.week === weekSel ? "on" : ""}">${x.week === thisWeek && !x.done ? "This week" : range(x)}</button>`).join("");
+  const s0 = w.summary, p = w.previous, r = w.review;
+  const delta = (a, b, unit = "", d = 0, pct = false) => {
+    if (a == null || b == null || !p || !p.with_stats) return "";
+    const v = pct ? (b ? (a - b) / b * 100 : null) : a - b;
+    if (v == null || Math.abs(v) < (d ? 0.05 : 0.5)) return `<small>same as last week</small>`;
+    return `<small><span class="${v > 0 ? "up" : "down"}">${v > 0 ? "▲" : "▼"} ${Math.abs(v).toFixed(pct ? 0 : d)}${pct ? "%" : unit}</span> vs last week</small>`;
+  };
+  const tiles = [
+    [s0.videos, `videos posted${w.missed ? `, ${w.missed} missed` : ""}`, p && p.videos ? delta(s0.videos, p.videos).replace(" vs last week", ` vs ${p.videos} last week`) : ""],
+    [n(s0.views), "views in total", delta(s0.views, p && p.views, "", 0, true)],
+    [n(s0.views_per_video), "views per video", delta(s0.views_per_video, p && p.views_per_video, "", 0, true)],
+    [s0.avg_watch_s == null ? "–" : `${n(s0.avg_watch_s)} s`, "average watch time", delta(s0.avg_watch_s, p && p.avg_watch_s, " s", 1)],
+    [s0.full_watch_pct == null ? "–" : `${n(s0.full_watch_pct)}%`, "watched to the end", delta(s0.full_watch_pct, p && p.full_watch_pct, " pts", 1)],
+    [n(s0.likes), "likes", delta(s0.likes, p && p.likes, "", 0, true)],
+    [n(s0.followers), "new followers", delta(s0.followers, p && p.followers)],
+  ];
+  const byId = Object.fromEntries(w.videos.map((v) => [v.id, v]));
+  const title = (v) => v.url ? `<a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.topic)}</a>` : esc(v.topic);
+  const fw = (x) => x == null ? "–" : `<span class="${x >= 20 ? "good" : x < 10 ? "weak" : ""}">${n(x)}%</span>`;
+  const vidCard = (id, i, label) => {
+    const v = byId[id]; if (!v) return "";
+    const why = r && r.videos && r.videos[id];
+    return `<div class="card wk-vid"><div class="rank">${label} #${i + 1}</div><h4>${title(v)}</h4>
+      <div class="row">${kindBadge(v.kind)}<span class="sub">${esc(wday(v.posted))}, ${esc(v.slot)}</span></div>
+      ${v.headline ? `<div class="idea"><b>On screen:</b> ${esc(v.headline)}</div>` : ""}
+      ${v.opening ? `<div class="idea"><b>After the question:</b> “${esc(v.opening)}”</div>` : ""}
+      <div class="nums"><span><b>${v.views}</b> views</span><span><b>${v.likes}</b> likes</span><span><b>${n(v.avg_watch_s)} s</b> watched</span><span>${fw(v.full_watch_pct)} to the end</span>${v.comments ? `<span>${v.comments} comments</span>` : ""}${v.followers ? `<span>${v.followers} follower${v.followers === 1 ? "" : "s"}</span>` : ""}</div>
+      ${why ? `<div class="why">${esc(why)}</div>` : ""}</div>`;
+  };
+  const best = w.best.map((id, i) => vidCard(id, i, "Most popular")).join("");
+  const worst = w.worst.map((id, i) => vidCard(id, i, "Least popular")).join("");
+  const writing = W.writing === w.week;
+  const canWrite = typeof CAN_WRITE !== "undefined" && CAN_WRITE && s0.videos;
+  const writeBtn = canWrite ? `<button class="primary" data-write="${w.week}" ${writing || W.writing ? "disabled" : ""}>${writing ? "Writing the review…" : r ? "Write the review again" : w.done ? "Write the review now" : "Review the week so far"}</button>` : "";
+  const status = writing ? "Claude is writing the review now (1–2 minutes)."
+    : r ? `Review written ${wday(w.review_written)}, ${hm(w.review_written)}${w.review_complete ? "" : " (part of the week)"}. The numbers below are the latest.`
+    : w.done ? "The review of this week is written on Monday, after that day's TikTok numbers are read."
+    : "This week is still running. Its review is written next Monday.";
+  const lst = (xs) => xs && xs.length ? `<ul class="wk-list">${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<div class="sub">–</div>`;
+  const reviewHtml = r ? `
+    <div class="wk-cols" style="margin-top:12px">
+      <div class="card"><h3>✅ What worked</h3>${lst(r.worked)}</div>
+      <div class="card"><h3>⚠️ What didn't work</h3>${lst(r.didnt)}</div>
+    </div>
+    <div class="card wk-card" style="margin-top:12px"><h3>🔧 What to change next week</h3>
+      <ol class="wk-list">${r.improve.map((x) => `<li>${esc(x.change)}<span class="why">${esc(x.why)}</span></li>`).join("")}</ol>
+      <div class="sub" style="margin-top:10px">The agent reads these when it picks topics next week.</div></div>
+    ${r.ideas.length ? `<div class="card wk-card" style="margin-top:12px"><h3>💡 Ideas to try</h3>${lst(r.ideas)}</div>` : ""}` : "";
+  const grp = (t, g) => g.length ? `<div class="card"><h3>${t}</h3><div class="tbl-wrap" style="margin-top:0"><table class="perf grp"><tr><th></th><th>videos</th><th>views</th><th>watch</th><th>to end</th><th>likes</th></tr>${
+    g.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.n}</td><td>${n(x.views)}</td><td>${n(x.avg_watch_s)} s</td><td>${fw(x.full_watch_pct)}</td><td>${n(x.like_pct, 1)}%</td></tr>`).join("")}</table></div></div>` : "";
+  const rows = w.videos.slice().reverse().map((v) => `<tr class="${v.has_stats ? "" : "dim"}"><td>${title(v)}${v.missing ? ` <span class="sub">(not on TikTok any more)</span>` : !v.has_stats ? ` <span class="sub">(no numbers yet)</span>` : v.young ? ` <span class="sub">(under a day old)</span>` : ""}</td>
+    <td>${esc(v.kind)}</td><td>${esc(wday(v.posted))}</td><td>${esc(v.slot)}</td><td>${v.has_stats ? v.views : "–"}</td><td>${v.has_stats ? v.likes : "–"}</td>
+    <td>${v.has_stats ? `${n(v.avg_watch_s, 1)} s` : "–"}</td><td>${v.has_stats ? fw(v.full_watch_pct) : "–"}</td><td>${v.drop_at_s == null ? "–" : `0:${String(v.drop_at_s).padStart(2, "0")}`}</td><td>${v.has_stats ? v.comments : "–"}</td></tr>`).join("");
+  el.innerHTML = `
+    <div class="weeks">${picker}</div>
+    <div class="card wk-head" style="margin-top:12px">
+      <h3>Week of ${range(w)}</h3>
+      ${r && r.headline ? `<div class="wk-verdict">${esc(r.headline)}</div>` : ""}
+      <div class="meta">${status}</div>
+      ${writeBtn ? `<div class="row" style="margin-top:12px">${writeBtn}</div>` : ""}
+    </div>
+    <div class="wk-tiles">${tiles.map(([b, l, d]) => `<div class="card stat"><b>${esc(b)}</b><span>${l}</span>${d}</div>`).join("")}</div>
+    ${best ? `<h2>Most popular this week</h2><div class="wk-vids">${best}</div>` : ""}
+    ${worst ? `<h2>Least popular this week</h2><div class="wk-vids">${worst}</div>` : ""}
+    ${!best && s0.videos ? `<div class="card sub" style="margin-top:12px">Not enough videos with a day of numbers yet to pick the most and least popular.</div>` : ""}
+    ${reviewHtml}
+    ${w.kinds.length || w.slots.length ? `<h2>Compared</h2><div class="perf-groups" style="margin-top:0">${grp("Disaster or funny", w.kinds)}${grp("Post time", w.slots)}</div>` : ""}
+    <h2>Every video this week</h2>
+    <div class="card"><div class="sub">Most and least popular are ranked by total time watched (views × average watch time), which is what TikTok rewards. "Watch" is the average watch time, "to end" the share who watched the whole video (green 20%+, red under 10%), "most leave" when most viewers swiped away. Videos under a day old are left out of the comparisons.</div>
+    <div class="tbl-wrap"><table class="perf"><tr><th>Video</th><th>kind</th><th>day</th><th>time</th><th>views</th><th>likes</th><th>watch</th><th>to end</th><th>most leave</th><th>comments</th></tr>${rows}</table></div></div>`;
+}
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("[data-tab], [data-week]"); if (!t) return;
+  if (t.dataset.tab) { showTab(t.dataset.tab); window.scrollTo(0, 0); }
+  else { weekSel = t.dataset.week; renderWeek(state); }
+});
+showTab((() => { try { return localStorage.getItem("tracker.tab") === "week" ? "week" : "main"; } catch (e) { return "main"; } })());
 </script>
 </body>
 </html>
